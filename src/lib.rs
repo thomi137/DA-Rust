@@ -7,13 +7,12 @@ use fftw::{
 };
 
 use num::{Complex};
-use lapack::*;
 
 // Type Definitions for pure convenience (and for making) public maybe.
 type Direction = Sign;
 type Plan = plan::C2CPlan64;
 
-// Somee useful Constants
+// Some useful Constants
 pub const PI: f64 = std::f64::consts::PI;
 pub const FRAC_ROOT_TWO_PI: f64 = 0.398942280401432677939946059934381868_f64;
 pub const E: f64 = std::f64::consts::E;
@@ -23,47 +22,79 @@ const I: c64 = Complex::I;
 pub mod physics {
 
     use num::pow;
+    use crate::FRAC_ROOT_TWO_PI;
     use crate::linalg::EigenConfig;
 
     pub struct Hamiltonian {
-        pub pot: Vec<f64>,
-        pub interaction_strength: f64,
+        pot: Vec<f64>,
+        operator: Vec<f64>,
+        interaction_strength: f64,
     }
     impl Hamiltonian {
-        pub fn new(config: EigenConfig, interaction_strength: f64, lattice: bool, trap: bool) -> Hamiltonian {
-            let config = config;
+        pub fn new(&mut self, config: EigenConfig, interaction_strength: f64, lattice: bool, trap: bool) -> Hamiltonian {
             let fnum_steps= config.n as f64;
             let system_width = config.system_width;
-            let wave_number = ( crate::PI * 40. ) / &system_width;
-            let step_size = &system_width / fnum_steps;
-            let mut pot: Vec<f64> = Vec::new();
-            for idx in 0..config.n {
-                let xpos = (&system_width * 0.5) - (idx as f64 * &system_width)/&fnum_steps;
-                pot.push(potential(xpos, &wave_number, &lattice, &trap) );
+            let wave_number = ( crate::PI * 40. ) / system_width;
+            let pot: Vec<f64> = Vec::new();
+            let operator: Vec<f64> = Vec::new();
+
+            self.init_potential(&config.n, &system_width, &fnum_steps, &wave_number, &lattice, &trap);
+            self.init_operator(&config.n, &system_width, &fnum_steps, &interaction_strength );
+
+            Hamiltonian{ pot, operator, interaction_strength }
+        }
+
+        fn init_potential(&mut self, len: &i32, system_width: &f64, fnum_steps: &f64, wave_number: &f64, lattice: &bool, trap: &bool) {
+            for idx in 0..*len {
+                let xpos = self.position(&idx, &system_width, &fnum_steps);
+                self.pot.push(self.potential(&xpos, &wave_number, &lattice, &trap) );
             };
-            Hamiltonian{ pot, interaction_strength }
         }
-    }
 
-    fn potential(location: f64, wave_number: &f64, trap: &bool, lattice: &bool) -> f64 {
-        let sinx = f64::sin( wave_number * location );
-
-        match (trap, lattice) {
-            (true, false) => &location * &location + 0.5,
-            (false, true) => {
-                let pot = 0.5 * pow(sinx, 2) * &location * &location;
-                pot
-            },
-            (true, true) => {
-                let sinx_sq = pow(sinx, 2);
-                let lattice = 0.5 * &sinx_sq * &location * &location;
-                let pot = 0.5 * &sinx_sq * &location * &location + 0.5 * &sinx_sq * &location * &location;
-                pot
-            },
-            _ => 0.
+        fn init_operator(&mut self, mut len: &i32, system_width: &f64, fnum_steps: &f64, interaction_strength: &f64) {
+            for row in 0..*len {
+                for col in 0..*len {
+                    if row == col {
+                        let sliceidx = col.clone() as usize;
+                        let column = col.clone();
+                        let step_size = system_width / fnum_steps;
+                        let xpos = self.position(&column, &system_width, &fnum_steps);
+                        let val = 1./(&step_size * &step_size)
+                            + interaction_strength * (FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.))
+                            + self.pot.get(sliceidx).unwrap();
+                        self.operator.push(val);
+                    } else if  row == col + 1  {
+                        let step_size = system_width / fnum_steps;
+                        self.operator.push(-0.5 * 1./(pow(step_size, 2)));
+                    } else { self.operator.push(0.) };
+                }
+            };
         }
-    }
-}
+
+        fn position(&self, index: &i32, system_width: &f64, fnum_steps: &f64) -> f64 {
+            let idx = (*index).clone();
+            (system_width * 0.5) - ((idx as f64)* system_width) / fnum_steps
+        }
+
+        fn potential(&self, location: &f64, wave_number: &f64, trap: &bool, lattice: &bool) -> f64 {
+            let sinx = f64::sin( wave_number * location );
+
+            match (trap, lattice) {
+                (true, false) => location * location * 0.5,
+                (false, true) => {
+                    let pot = 0.5 * pow(sinx, 2) * location * location;
+                    pot
+                },
+                (true, true) => {
+                    let sinx_sq = pow(sinx, 2);
+                    let pot = 0.5 * &sinx_sq * location * location + 0.5 * &sinx_sq * location * location;
+                    pot
+                },
+                _ => 0.
+            }
+        }
+    } // Impl Hamiltonian
+} // Mod Physics
 
 /// Linear Algebra used.
 /// at the moment, the eigenvalues and eigenvectors of a tridiagonal Matrix are used,
