@@ -139,11 +139,12 @@ pub mod linalg {
             let jobz = get_jobz(job);
             let uplo = get_uplo(upper_lower);
             let n = step_number as i32;
+            let n_to_move = n.clone();
             let lda = n.clone();
             let lwork = 3*n-1;
             let system_width = system_width;
 
-            EigenConfig { jobz, uplo, n, system_width, lwork, lda }
+            EigenConfig { jobz, uplo, n: n_to_move, system_width, lwork, lda }
         }
     } // Impl Eigenconfig
 } // mod Linalg
@@ -153,35 +154,37 @@ mod solvers {
     use lapack::*;
     use crate::linalg::{EigenConfig, Jobz};
 
-    fn eigensolver(config: &EigenConfig, hamiltonian: &Vec<f64>) -> Result<(Vec<f64>, Vec<f64>), &'static str> {
+    pub fn eigensolver(config: &EigenConfig, hamiltonian: &Vec<f64>) -> Result<(Vec<f64>, Vec<f64>), &'static str> {
 
         let cfg = config.clone();
         let rng = cfg.n.clone() as usize;
-
+        let mut lwork = cfg.lwork.clone();
         let mut matrix = hamiltonian.clone();
         let mut w = vec![0.0; rng];
-        let mut work = vec![0.0; rng];
+        let mut work = vec![0.0; cfg.lwork as usize];
         let mut info = 2939;
 
         unsafe {
-            dsyev(cfg.jobz, cfg.uplo, cfg.n, &mut matrix, cfg.lda, &mut w, &mut work, cfg.lwork, &mut info);
+            dsyev(cfg.jobz, cfg.uplo, cfg.n, &mut matrix, cfg.lda, &mut w, &mut work, lwork, &mut info);
         }
 
         if info == 0 {
            return if cfg.jobz ==  b'N' { Ok((w, vec![])) }
             else if cfg.jobz == b'V' { Ok((w, matrix))}
-            else { Ok((vec![], vec![]))}
+            else { Ok((vec![], vec![])) }
         }
 
-        Err("Algorithm failed to converge: info is {info}, please consult https://www.netlib.org/lapack/explore-html-3.6.1/d2/d8a/group__double_s_yeigen_ga442c43fca5493590f8f26cf42fed4044.html")
+
+        Err(&format!("Algorithm failed: info is {info}, please consult https://www.netlib.org/lapack/explore-html-3.6.1/d2/d8a/group__double_s_yeigen_ga442c43fca5493590f8f26cf42fed4044.html"))
     }
 
 } // mod Solvers
 
 #[cfg(test)]
 mod tests {
+    use crate::linalg::EigenConfig;
     use crate::physics::{Hamiltonian, potential};
-    use super::{linalg, physics};
+    use super::{linalg, physics, solvers};
 
     #[test]
     fn test_eigenconfig() {
@@ -223,5 +226,47 @@ mod tests {
         assert_eq!(lat_pot, 0.);
     }
 
+    #[test]
+    fn eigensolver_test(){
+        let config = EigenConfig{ jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork:8, system_width: 10.};
+        let hamiltonian = vec![3.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 3.0];
+
+        let res = solvers::eigensolver(&config, &hamiltonian).unwrap();
+
+        assert_eq!(res.0.len(), 3);
+        assert_eq!(res.1.len(), 9);
+
+        // from docs.
+        for (one, another) in res.0.iter().zip(&[2.0, 2.0, 5.0]) {
+            assert!((one - another).abs() < 1e-14);
+        }
+    }
+
+    #[test]
+    fn eigenvector_eigensolver_test(){
+        let config = EigenConfig{ jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork:8, system_width: 10.};
+        let hamiltonian = vec![3.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 3.0];
+
+        let res = solvers::eigensolver(&config, &hamiltonian).unwrap();
+        let vecs = res.1;
+
+        assert_eq!(vecs.len(), 9);
+    }
+
+    #[test]
+    fn only_eigenvalues_eigensolver_test(){
+        let config = EigenConfig{ jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork:8, system_width: 10.};
+        let hamiltonian = vec![3.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 3.0];
+
+        let res = solvers::eigensolver(&config, &hamiltonian).unwrap();
+
+        assert_eq!(res.0.len(), 3);
+        assert_eq!(res.1.len(), 0);
+
+        // from docs.
+        for (one, another) in res.0.iter().zip(&[2.0, 2.0, 5.0]) {
+            assert!((one - another).abs() < 1e-14);
+        }
+    }
 }
 
