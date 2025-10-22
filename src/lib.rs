@@ -26,9 +26,9 @@ pub mod physics {
     use crate::linalg::EigenConfig;
 
     pub struct Hamiltonian {
-        pot: Vec<f64>,
-        operator: Vec<f64>,
-        interaction_strength: f64,
+        pub pot: Vec<f64>,
+        pub operator: Vec<f64>,
+        pub interaction_strength: f64,
     }
     impl Hamiltonian {
         pub fn new(&mut self, config: EigenConfig, interaction_strength: f64, lattice: bool, trap: bool) -> Hamiltonian {
@@ -46,8 +46,8 @@ pub mod physics {
 
         fn init_potential(&mut self, len: &i32, system_width: &f64, fnum_steps: &f64, wave_number: &f64, lattice: &bool, trap: &bool) {
             for idx in 0..*len {
-                let xpos = self.position(&idx, &system_width, &fnum_steps);
-                self.pot.push(self.potential(&xpos, &wave_number, &lattice, &trap) );
+                let xpos = position(&idx, &system_width, &fnum_steps);
+                self.pot.push(potential(&xpos, &wave_number, &lattice, &trap) );
             };
         }
 
@@ -58,7 +58,7 @@ pub mod physics {
                         let sliceidx = col.clone() as usize;
                         let column = col.clone();
                         let step_size = system_width / fnum_steps;
-                        let xpos = self.position(&column, &system_width, &fnum_steps);
+                        let xpos = position(&column, &system_width, &fnum_steps);
                         let val = 1./(&step_size * &step_size)
                             + interaction_strength * (FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.))
                             + self.pot.get(sliceidx).unwrap();
@@ -71,29 +71,32 @@ pub mod physics {
             };
         }
 
-        fn position(&self, index: &i32, system_width: &f64, fnum_steps: &f64) -> f64 {
-            let idx = (*index).clone();
-            (system_width * 0.5) - ((idx as f64)* system_width) / fnum_steps
-        }
 
-        fn potential(&self, location: &f64, wave_number: &f64, trap: &bool, lattice: &bool) -> f64 {
-            let sinx = f64::sin( wave_number * location );
 
-            match (trap, lattice) {
-                (true, false) => location * location * 0.5,
-                (false, true) => {
-                    let pot = 0.5 * pow(sinx, 2) * location * location;
-                    pot
-                },
-                (true, true) => {
-                    let sinx_sq = pow(sinx, 2);
-                    let pot = 0.5 * &sinx_sq * location * location + 0.5 * &sinx_sq * location * location;
-                    pot
-                },
-                _ => 0.
-            }
-        }
     } // Impl Hamiltonian
+
+    pub fn position(index: &i32, system_width: &f64, fnum_steps: &f64) -> f64 {
+        let idx = (*index).clone();
+        -(system_width * 0.5) + (idx as f64) * (system_width / fnum_steps)
+    }
+
+    pub fn potential(location: &f64, wave_number: &f64, trap: &bool, lattice: &bool) -> f64 {
+        let sinx = f64::sin( wave_number * location );
+
+        match (trap, lattice) {
+            (true, false) => location * location * 0.5,
+            (false, true) => {
+                let pot = 0.5 * pow(sinx, 2) * location * location;
+                pot
+            },
+            (true, true) => {
+                let sinx_sq = pow(sinx, 2);
+                let pot = 0.5 * &sinx_sq * location * location + 0.5 * &sinx_sq * location * location;
+                pot
+            },
+            _ => 0.
+        }
+    }
 } // Mod Physics
 
 /// Linear Algebra used.
@@ -146,5 +149,53 @@ pub mod linalg {
 
             EigenConfig { jobz, uplo, n, system_width }
         }
+    } // Impl Eigenconfig
+} // mod Linalg
+
+#[cfg(test)]
+mod tests {
+    use crate::physics::{Hamiltonian, potential};
+    use super::{linalg, physics};
+
+    #[test]
+    fn test_eigenconfig() {
+        let config = linalg::EigenConfig::init(
+            linalg::Jobz::EigenValuesOnly,
+            linalg::Uplo::UpperTriangle,
+            10,
+            10.,
+        );
+
+        assert_eq!(config.jobz, b'N');
+        assert_eq!(config.uplo, b'U');
     }
+
+    #[test]
+    fn test_position(){
+        let pos = super::physics::position(&5, &10., &10.);
+        let pos2 = physics::position(&10, &10., &10.);
+
+        assert_eq!(pos, 0.0);
+        assert_eq!(pos2, 5.0);
+    }
+
+    // Trap only, Harmonic Oscillator
+    #[test]
+    fn test_potential(){
+        let osc_pot = potential(&0., &1., &true, &false );
+        let osc_pot2 = potential(&-5.0, &1., &true, &false );
+
+        assert_eq!(osc_pot, 0.);
+        assert_eq!(osc_pot2, 12.5);
+    }
+
+    // Lattice only. Sin^2 -like potential
+    #[test]
+    fn test_lat_potential(){
+        let lat_pot = potential(&0., &1., &false, &true );
+
+        assert_eq!(lat_pot, 0.);
+    }
+
 }
+
