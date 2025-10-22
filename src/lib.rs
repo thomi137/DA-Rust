@@ -26,42 +26,33 @@ pub mod physics {
     use crate::linalg::EigenConfig;
 
     pub struct Hamiltonian {
-        pub pot: Vec<f64>,
         pub operator: Vec<f64>,
         pub interaction_strength: f64,
+        pub trap: bool,
+        pub lattice: bool,
     }
     impl Hamiltonian {
-        pub fn new(&mut self, config: EigenConfig, interaction_strength: f64, lattice: bool, trap: bool) -> Hamiltonian {
+        pub fn new(&mut self, config: EigenConfig, interaction_strength: f64, trap: bool, lattice: bool) -> Hamiltonian {
             let fnum_steps= config.n as f64;
             let system_width = config.system_width;
-            let wave_number = ( crate::PI * 40. ) / system_width;
-            let pot: Vec<f64> = Vec::new();
             let operator: Vec<f64> = Vec::new();
 
-            self.init_potential(&config.n, &system_width, &fnum_steps, &wave_number, &lattice, &trap);
-            self.init_operator(&config.n, &system_width, &fnum_steps, &interaction_strength );
+            self.init_operator(&config.n, &system_width, &fnum_steps, &interaction_strength, &trap, &lattice );
 
-            Hamiltonian{ pot, operator, interaction_strength }
+            Hamiltonian{ operator, interaction_strength, trap, lattice }
         }
 
-        fn init_potential(&mut self, len: &i32, system_width: &f64, fnum_steps: &f64, wave_number: &f64, lattice: &bool, trap: &bool) {
-            for idx in 0..*len {
-                let xpos = position(&idx, &system_width, &fnum_steps);
-                self.pot.push(potential(&xpos, &wave_number, &lattice, &trap) );
-            };
-        }
-
-        fn init_operator(&mut self, mut len: &i32, system_width: &f64, fnum_steps: &f64, interaction_strength: &f64) {
+        fn init_operator(&mut self, mut len: &i32, system_width: &f64, fnum_steps: &f64, interaction_strength: &f64, lattice: &bool, trap: &bool) {
             for row in 0..*len {
                 for col in 0..*len {
                     if row == col {
-                        let sliceidx = col.clone() as usize;
                         let column = col.clone();
                         let step_size = system_width / fnum_steps;
+                        let wave_number = ( crate::PI * 40. ) / system_width;
                         let xpos = position(&column, &system_width, &fnum_steps);
                         let val = 1./(&step_size * &step_size)
                             + interaction_strength * (FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.))
-                            + self.pot.get(sliceidx).unwrap();
+                            + potential(&xpos, &wave_number, lattice, trap);
                         self.operator.push(val);
                     } else if  row == col + 1  {
                         let step_size = system_width / fnum_steps;
