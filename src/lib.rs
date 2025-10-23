@@ -32,41 +32,41 @@ pub mod physics {
         pub lattice: bool,
     }
     impl Hamiltonian {
-        pub fn new(&mut self, config: EigenConfig, interaction_strength: f64, trap: bool, lattice: bool) -> Hamiltonian {
-            let fnum_steps= config.n as f64;
+        pub fn new(config: EigenConfig, interaction_strength: f64, trap: bool, lattice: bool) -> Hamiltonian {
+            let num_steps = config.n as usize;
+            let fnum_steps= num_steps as f64;
             let system_width = config.system_width;
-            let operator: Vec<f64> = Vec::new();
-
-            self.init_operator(&config.n, &system_width, &fnum_steps, &interaction_strength, &trap, &lattice );
+            let operator = init_operator(&num_steps, &system_width, &fnum_steps, &interaction_strength, &trap, &lattice );
 
             Hamiltonian{ operator, interaction_strength, trap, lattice }
         }
 
-        fn init_operator(&mut self, mut len: &i32, system_width: &f64, fnum_steps: &f64, interaction_strength: &f64, lattice: &bool, trap: &bool) {
-            for row in 0..*len {
-                for col in 0..*len {
-                    if row == col {
-                        let column = col.clone();
-                        let step_size = system_width / fnum_steps;
-                        let wave_number = ( crate::PI * 40. ) / system_width;
-                        let xpos = position(&column, &system_width, &fnum_steps);
-                        let val = 1./(&step_size * &step_size)
-                            + interaction_strength * (FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.))
-                            + potential(&xpos, &wave_number, lattice, trap);
-                        self.operator.push(val);
-                    } else if  row == col + 1  {
-                        let step_size = system_width / fnum_steps;
-                        self.operator.push(-0.5 * 1./(pow(step_size, 2)));
-                    } else { self.operator.push(0.) };
-                }
-            };
-        }
-
-
 
     } // Impl Hamiltonian
 
-    pub fn position(index: &i32, system_width: &f64, fnum_steps: &f64) -> f64 {
+    pub fn init_operator(mut num_steps: &usize, system_width: &f64, fnum_steps: &f64, interaction_strength: &f64, lattice: &bool, trap: &bool) -> Vec<f64> {
+        let mut operator: Vec<f64> = Vec::new();
+        for row in 0..*num_steps {
+            for col in 0..*num_steps {
+                if row == col {
+                    let column = col.clone();
+                    let step_size = system_width / fnum_steps;
+                    let wave_number = ( crate::PI * 40. ) / system_width;
+                    let xpos = position(&column, &system_width, &fnum_steps);
+                    let val = 1./(&step_size * &step_size)
+                        + interaction_strength * (FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.))
+                        + potential(&xpos, &wave_number, lattice, trap);
+                    operator.push(val);
+                } else if  row == col + 1  {
+                    let step_size = system_width / fnum_steps;
+                    operator.push(-0.5 * 1./(pow(step_size, 2)));
+                } else { operator.push(0.) };
+            }
+        };
+        operator
+    }
+
+    pub fn position(index: &usize, system_width: &f64, fnum_steps: &f64) -> f64 {
         let idx = (*index).clone();
         -(system_width * 0.5) + (idx as f64) * (system_width / fnum_steps)
     }
@@ -175,7 +175,7 @@ mod solvers {
         }
 
 
-        Err(&format!("Algorithm failed: info is {info}, please consult https://www.netlib.org/lapack/explore-html-3.6.1/d2/d8a/group__double_s_yeigen_ga442c43fca5493590f8f26cf42fed4044.html"))
+        Err("Algorithm failed: info is {info}, please consult https://www.netlib.org/lapack/explore-html-3.6.1/d2/d8a/group__double_s_yeigen_ga442c43fca5493590f8f26cf42fed4044.html")
     }
 
 } // mod Solvers
@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_eigenconfig() {
-        let config = linalg::EigenConfig::init(
+        let config = EigenConfig::init(
             linalg::Jobz::EigenValuesOnly,
             linalg::Uplo::UpperTriangle,
             10,
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_position(){
-        let pos = super::physics::position(&5, &10., &10.);
+        let pos = physics::position(&5, &10., &10.);
         let pos2 = physics::position(&10, &10., &10.);
 
         assert_eq!(pos, 0.0);

@@ -4,6 +4,8 @@ use lapack::*;
 use plotters::prelude::*;
 use bec_rust::*;
 use bec_rust::linalg::{EigenConfig, Jobz, Uplo};
+use bec_rust::physics::Hamiltonian;
+use bec_rust::
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,50 +20,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         10.
     );
 
-    let fnum_steps= config.n as f64;
-    let system_width = config.system_width;
-    let interaction_strength  = 5.;
-    let wave_number = ( bec_rust::PI * 40. ) / &system_width;
-    let step_size = &system_width / fnum_steps;
+    let hamiltonian = Hamiltonian::new(config,1.0,true, true);
 
-    let mut eigen: Vec<f64> = Vec::with_capacity(NUM_STEPS);
-    let mut data: Vec<f64> = Vec::with_capacity(NUM_STEPS);
-
-    for idx in 0..NUM_STEPS {
-        let xpos = (&system_width * 0.5) - (idx as f64 * &system_width)/&fnum_steps;
-        data.push( FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.) )
-    }
-
-    let mut a: Vec<f64> = Vec::new();
-    for i in 0..NUM_STEPS{
-        let xpos = (&system_width * 0.5) - (i as f64 * &system_width)/&fnum_steps;
-        let sinx = f64::sin(&wave_number * xpos);
-        let datsq = data[i] * data[i];
-        for j in 0..NUM_STEPS{
-            let val: f64 = if i == j {
-                1./(&step_size * &step_size)
-                    + &interaction_strength * &datsq
-                    + 0.5 * (&xpos * &xpos)
-                    + 0.5 * (&wave_number * & wave_number) * (&sinx * &sinx)
-            } else if  i == j + 1  {
-                    -0.5 * 1./(&step_size * &step_size)
-            } else { 0.};
-            a.push(val);
-        }
-    }
-    let length = a.len();
-    // println!("a has length: {length}, 0th element: {}", a[0]);
-
-    let n = NUM_STEPS as i32;
-    let lda = n;
-    let lwork = 3*&n-1;
-    let mut w = vec![0.0; n as usize];
-    let mut work = vec![0.0; lwork as usize];
-    let mut info = 2939;
-
-    unsafe {
-        dsyev(config.jobz, config.uplo, config.n, &mut a, lda, &mut w, &mut work, lwork, &mut info);
-    }
 
     //println!("info is: {info}");
     //println!("{:?}", a);
