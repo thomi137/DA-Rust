@@ -2,11 +2,11 @@ use std::error::Error;
 use num::pow;
 use lapack::*;
 use plotters::prelude::*;
-use bec_rust::*;
-use bec_rust::linalg::{EigenConfig, Jobz, Uplo};
-use bec_rust::physics::Hamiltonian;
-use bec_rust::solvers::eigensolver;
-
+use bec_rust::{
+    linalg::{EigenConfig, Jobz, Uplo},
+    physics::Hamiltonian,
+    solvers::eigensolver,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
@@ -19,12 +19,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         10.
     );
 
-    let hamiltonian = Hamiltonian::new(&config,0.0,true, true);
+    let hamiltonian = Hamiltonian::new(&config,0.0,true, false);
 
     let result = eigensolver(&config, &hamiltonian.operator);
     let eigenvectors = result.unwrap().1;
 
-    let mut plotvec: Vec<_> = eigenvectors[0..NUM_STEPS]
+    let mut plotvec: Vec<_> = eigenvectors[3*NUM_STEPS..4*NUM_STEPS]
         .iter()
         .map(|item| { item.clone()})
         .enumerate()
@@ -34,7 +34,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
-    // println!("{:#?}", plotvec);
 
     let root = BitMapBackend::new("./0.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE)?;
@@ -55,11 +54,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
        // .label("y = x^2")
        // .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
 
-    chart
-        .configure_series_labels()
-        .background_style(&WHITE.mix(0.8))
-        .border_style(&BLACK)
-        .draw()?;
+    //chart
+    //    .configure_series_labels()
+    //    .background_style(&WHITE.mix(0.8))
+    //    .border_style(&BLACK)
+    //    .draw()?;
 
     root.present()?;
 

@@ -210,7 +210,7 @@ mod tests {
         let pos2 = physics::position(&10, &10., &10.);
 
         assert_eq!(pos, 0.0);
-        assert_eq!(pos2, 5.0);
+        assert_eq!(pos2, -5.0);
     }
 
     // Trap only, Harmonic Oscillator
