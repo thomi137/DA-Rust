@@ -21,6 +21,7 @@ target
 **/mutants.out*/
 
 # Output
+plots/**
 *.png
 
 # RustRover
