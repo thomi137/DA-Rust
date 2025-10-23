@@ -1,6 +1,4 @@
 use std::error::Error;
-use num::pow;
-use lapack::*;
 use plotters::prelude::*;
 use bec_rust::{
     linalg::{EigenConfig, Jobz, Uplo},
@@ -19,14 +17,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         10.
     );
 
-    let hamiltonian = Hamiltonian::new(&config,0.0,true, false);
+    let hamiltonian = Hamiltonian::new(&config,0.1,true, true);
 
     let result = eigensolver(&config, &hamiltonian.operator);
     let eigenvectors = result.unwrap().1;
 
-    let mut plotvec: Vec<_> = eigenvectors[3*NUM_STEPS..4*NUM_STEPS]
+    let mut plotvec: Vec<_> = eigenvectors[0..NUM_STEPS]
         .iter()
-        .map(|item| { item.clone()})
         .enumerate()
         .map(|(idx, val)| {
             let xpos =  (10.0 * 0.5) - ((idx as f64) * 10.0)/(NUM_STEPS as f64);
