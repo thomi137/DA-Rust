@@ -25,6 +25,7 @@ pub mod physics {
     use crate::FRAC_ROOT_TWO_PI;
     use crate::linalg::EigenConfig;
 
+    #[derive(Clone, Debug)]
     pub struct Hamiltonian {
         pub operator: Vec<f64>,
         pub interaction_strength: f64,
@@ -49,27 +50,30 @@ pub mod physics {
         let mut operator: Vec<f64> = Vec::new();
         for row in 0..*num_steps {
             for col in 0..*num_steps {
+                let column = col.clone();
+                let row = row.clone();
                 if row == col {
-                    let column = col.clone();
                     let step_size = system_width / fnum_steps;
                     let wave_number = ( crate::PI * 40. ) / system_width;
                     let xpos = position(&column, &system_width, &fnum_steps);
                     let val = 1./(&step_size * &step_size)
-                        + interaction_strength * (FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.))
+                        + interaction_strength * pow((FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.)), 2)
                         + potential(&xpos, &wave_number, lattice, trap);
                     operator.push(val);
-                } else if  row == col + 1  {
+                } else if  (col as isize - row as isize).abs() == 1  {
                     let step_size = system_width / fnum_steps;
                     operator.push(-0.5 * 1./(pow(step_size, 2)));
-                } else { operator.push(0.) };
+                } else {
+                    operator.push(0.) };
             }
         };
         operator
     }
 
+
     pub fn position(index: &usize, system_width: &f64, fnum_steps: &f64) -> f64 {
         let idx = (*index).clone();
-        -(system_width * 0.5) + (idx as f64) * (system_width / fnum_steps)
+        (system_width * 0.5) - (idx as f64) * (system_width / fnum_steps)
     }
 
     pub fn potential(location: &f64, wave_number: &f64, trap: &bool, lattice: &bool) -> f64 {
@@ -82,9 +86,8 @@ pub mod physics {
                 pot
             },
             (true, true) => {
-                println!("true true");
                 let sinx_sq = pow(sinx, 2);
-                let pot = 0.5 * &sinx_sq * location * location + 0.5 * &sinx_sq * location * location;
+                let pot = 0.5 * location * location + 0.5 * pow(*wave_number, 2) * &sinx_sq;
                 pot
             },
             _ => 0.

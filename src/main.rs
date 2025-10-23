@@ -14,12 +14,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     const NUM_STEPS: usize = 1024;
     let config = EigenConfig::init(
         Jobz::WithEigenvectors,
-        Uplo::UpperTriangle,
+        Uplo::LowerTriangle,
         NUM_STEPS,
         10.
     );
 
-    let hamiltonian = Hamiltonian::new(&config,1.0,true, true);
+    let hamiltonian = Hamiltonian::new(&config,0.0,true, true);
 
     let result = eigensolver(&config, &hamiltonian.operator);
     let eigenvectors = result.unwrap().1;
@@ -29,8 +29,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|item| { item.clone()})
         .enumerate()
         .map(|(idx, val)| {
-            let xpos = -(10.0 * 0.5) + (idx as f64) * (10.0/NUM_STEPS as f64);
-            (xpos, pow(val, 2))
+            let xpos =  (10.0 * 0.5) - ((idx as f64) * 10.0)/(NUM_STEPS as f64);
+            (xpos, val.abs())
         })
         .collect();
 
@@ -40,10 +40,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     root.fill(&WHITE)?;
     let mut chart = ChartBuilder::on(&root)
         .caption("BEC Groundstate", ("sans-serif", 50).into_font())
-        .margin(5)
+        .margin(10)
         .x_label_area_size(30)
         .y_label_area_size(30)
-        .build_cartesian_2d(-5f64..5f64, 0f64..0.006f64)?;
+        .build_cartesian_2d(-5f64..5f64, 0f64..0.1f64)?;
 
     chart.configure_mesh().draw()?;
 
