@@ -5,7 +5,9 @@ Some code in Rust for learning purposes
 ## Purpose
 This repository comprises the source code used to simulate kicked Bose-Einstein condensates trapped in a lattice with harmonic potential wells. I specifically is used to examine behaviour of the governing Gross-Pitaevskii equation on specific Kick strengths. The non-linearity implies the validity of the KAM theory of classical chaos theory.
 
-At the time it was thought that this gives rise to chaotic behaviour in the quantum realm
+At the time it was thought that this gives rise to chaotic behaviour in the quantum realm.
+I ported some of the code to rust for scientific purposes (i. e. for fun). I think most of the problems I dealt with back then
+could be addressed in this modern language, although I still use LAPACK and FFTW which are second to none and worth the headache Fortran and C bring to the table.
 
 ## Installation Requirements
 In order to be able to compile the file in this repository, you will need to have the following installed:
