@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
 
 
-    let root = BitMapBackend::new("./0.png", (640, 480)).into_drawing_area();
+    let root = BitMapBackend::new("./plots/0.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE)?;
     let mut chart = ChartBuilder::on(&root)
         .caption("BEC Groundstate", ("sans-serif", 50).into_font())
