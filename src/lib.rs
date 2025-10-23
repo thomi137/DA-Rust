@@ -32,7 +32,8 @@ pub mod physics {
         pub lattice: bool,
     }
     impl Hamiltonian {
-        pub fn new(config: EigenConfig, interaction_strength: f64, trap: bool, lattice: bool) -> Hamiltonian {
+        pub fn new(config: &EigenConfig, interaction_strength: f64, trap: bool, lattice: bool) -> Hamiltonian {
+            let config = config.clone();
             let num_steps = config.n as usize;
             let fnum_steps= num_steps as f64;
             let system_width = config.system_width;
@@ -81,6 +82,7 @@ pub mod physics {
                 pot
             },
             (true, true) => {
+                println!("true true");
                 let sinx_sq = pow(sinx, 2);
                 let pot = 0.5 * &sinx_sq * location * location + 0.5 * &sinx_sq * location * location;
                 pot
@@ -149,7 +151,7 @@ pub mod linalg {
     } // Impl Eigenconfig
 } // mod Linalg
 
-mod solvers {
+pub mod solvers {
 
     use lapack::*;
     use crate::linalg::{EigenConfig, Jobz};

@@ -5,14 +5,13 @@ use plotters::prelude::*;
 use bec_rust::*;
 use bec_rust::linalg::{EigenConfig, Jobz, Uplo};
 use bec_rust::physics::Hamiltonian;
-use bec_rust::
+use bec_rust::solvers::eigensolver;
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // these will be Command Line Arguments
-    const NUM_STEPS: usize = 2048;
-
+    const NUM_STEPS: usize = 1024;
     let config = EigenConfig::init(
         Jobz::WithEigenvectors,
         Uplo::UpperTriangle,
@@ -20,22 +19,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         10.
     );
 
-    let hamiltonian = Hamiltonian::new(config,1.0,true, true);
+    let hamiltonian = Hamiltonian::new(&config,1.0,true, true);
 
+    let result = eigensolver(&config, &hamiltonian.operator);
+    let eigenvectors = result.unwrap().1;
 
-    //println!("info is: {info}");
-    //println!("{:?}", a);
-    let mut plotvec: Vec<_> = a[0..NUM_STEPS]
+    let mut plotvec: Vec<_> = eigenvectors[0..NUM_STEPS]
         .iter()
         .map(|item| { item.clone()})
         .enumerate()
         .map(|(idx, val)| {
-            let xpos = (&system_width * 0.5) - (idx as f64) * (&system_width/&fnum_steps);
-            (xpos, val)
+            let xpos = -(10.0 * 0.5) + (idx as f64) * (10.0/NUM_STEPS as f64);
+            (xpos, pow(val, 2))
         })
         .collect();
 
-    println!("{:#?}", plotvec);
+    // println!("{:#?}", plotvec);
 
     let root = BitMapBackend::new("./0.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE)?;
@@ -44,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .margin(5)
         .x_label_area_size(30)
         .y_label_area_size(30)
-        .build_cartesian_2d(-5f64..5f64, 0f64..0.075f64)?;
+        .build_cartesian_2d(-5f64..5f64, 0f64..0.006f64)?;
 
     chart.configure_mesh().draw()?;
 
