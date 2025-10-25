@@ -356,5 +356,22 @@ mod tests {
             assert!((one - another).abs() < 1e-14);
         }
     }
+
+    #[test]
+    fn tridiag_eigensolver_test(){
+        let config = EigenConfig{ jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork:8, system_width: 10.};
+        let diag: Vec<f64> = (1..=5).map(|x| { x as f64}).collect();
+        let offdiag: Vec<f64> = vec![2.0; 4];
+        let res = solvers::tridiag_eigensolver(&config, diag, offdiag).unwrap();
+
+        assert_eq!(res.0.len(), 5);
+        assert_eq!(res.1.len(), 25);
+
+        let exp_ev = vec![ (-1.12) ,1.0 ,3.0, 5.0, 7.12 ];
+        for (one, another) in res.0.iter().zip(&exp_ev) {
+            assert!((one - another).abs() < 1e-2);
+        }
+
+    }
 }
 
