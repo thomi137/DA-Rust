@@ -144,23 +144,29 @@ pub mod linalg {
         EigenValuesOnly,
         WithEigenvectors
     }
-    fn get_jobz(selection: Jobz) -> u8 {
-        match selection {
-            Jobz::EigenValuesOnly => b'N',
-            Jobz::WithEigenvectors => b'V',
+    impl Jobz{
+        fn get_jobz(selection: Jobz) -> u8 {
+            match selection {
+                Jobz::EigenValuesOnly => b'N',
+                Jobz::WithEigenvectors => b'V',
+            }
         }
     }
+
 
     pub enum Uplo {
         UpperTriangle,
         LowerTriangle
     }
-    fn get_uplo(upper_or_lower: Uplo) -> u8 {
-        match upper_or_lower {
-            Uplo::UpperTriangle => b'U',
-            Uplo::LowerTriangle => b'L',
+    impl Uplo {
+        fn get_uplo(upper_or_lower: Uplo) -> u8 {
+            match upper_or_lower {
+                Uplo::UpperTriangle => b'U',
+                Uplo::LowerTriangle => b'L',
+            }
         }
     }
+
 
     /// #Config
     ///
@@ -181,8 +187,8 @@ pub mod linalg {
     }
     impl EigenConfig {
         pub fn init(job: Jobz, upper_lower: Uplo, step_number: usize, system_width: f64 ) -> EigenConfig {
-            let jobz = get_jobz(job);
-            let uplo = get_uplo(upper_lower);
+            let jobz = Jobz::get_jobz(job);
+            let uplo = Uplo::get_uplo(upper_lower);
             let n = step_number as i32;
             let n_to_move = n.clone();
             let lda = n.clone();
