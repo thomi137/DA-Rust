@@ -1,10 +1,9 @@
-use std::error::Error;
 use plotters::prelude::*;
 use bec_rust::{
     linalg::{EigenConfig, Jobz, Uplo},
-    physics::Hamiltonian,
-    solvers::eigensolver,
 };
+use bec_rust::physics::TridiagHamiltonian;
+use bec_rust::solvers::tridiag_eigensolver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
@@ -17,12 +16,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         10.
     );
 
-    let hamiltonian = Hamiltonian::new(&config,0.1,true, true);
+    // let hamiltonian = Hamiltonian::new(&config,0.1,true, true);
+    // let result = symmetric_eigensolver(&config, &hamiltonian.operator);
 
-    let result = eigensolver(&config, &hamiltonian.operator);
+    let hamiltonian = TridiagHamiltonian::new(&config,0.1,true, true);
+    let result = tridiag_eigensolver(&config, hamiltonian.vectors.diag, hamiltonian.vectors.offdiag );
+
+
     let eigenvectors = result.unwrap().1;
 
-    let mut plotvec: Vec<_> = eigenvectors[0..NUM_STEPS]
+    let plotvec: Vec<_> = eigenvectors[0..NUM_STEPS]
         .iter()
         .enumerate()
         .map(|(idx, val)| {
