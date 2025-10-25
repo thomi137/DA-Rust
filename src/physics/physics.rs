@@ -3,6 +3,9 @@
  use crate::{FRAC_ROOT_TWO_PI, linalg};
  use linalg::EigenConfig;
 
+ pub const PI: f64 = std::f64::consts::PI;
+ pub const FRAC_ROOT_TWO_PI: f64 = 0.398942280401432677939946059934381868_f64;
+
 #[derive(Clone, Debug)]
 pub struct Hamiltonian {
     pub operator: Vec<f64>,

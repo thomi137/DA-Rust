@@ -9,8 +9,7 @@ pub mod physics;
 // type Plan = plan::C2CPlan64;
 
 // Some useful Constants
-pub const PI: f64 = std::f64::consts::PI;
-pub const FRAC_ROOT_TWO_PI: f64 = 0.398942280401432677939946059934381868_f64;
+
 //pub const E: f64 = std::f64::consts::E;
 
 //const I: c64 = Complex::I;
@@ -18,9 +17,10 @@ pub const FRAC_ROOT_TWO_PI: f64 = 0.398942280401432677939946059934381868_f64;
 
 #[cfg(test)]
 mod tests {
-    use crate::physics::potential;
-    use crate::{linalg::{EigenConfig, Jobz, Uplo, solvers},
-                physics};
+    use crate::{
+        linalg::{EigenConfig, Jobz, Uplo, solvers},
+        physics::*,
+    };
 
     #[test]
     fn test_eigenconfig() {
