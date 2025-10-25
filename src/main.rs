@@ -5,7 +5,7 @@ use bec_rust::{
     linalg::{EigenConfig, Jobz, Uplo},
 };
 use bec_rust::physics::TridiagHamiltonian;
-use bec_rust::solvers::tridiag_eigensolver;
+use bec_rust::linalg::solvers::tridiag_eigensolver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
