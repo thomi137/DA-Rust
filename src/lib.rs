@@ -271,7 +271,7 @@ pub mod solvers {
 #[cfg(test)]
 mod tests {
     use crate::linalg::EigenConfig;
-    use crate::physics::{Hamiltonian, potential};
+    use crate::physics::potential;
     use super::{linalg, physics, solvers};
 
     #[test]
@@ -371,6 +371,18 @@ mod tests {
         for (one, another) in res.0.iter().zip(&exp_ev) {
             assert!((one - another).abs() < 1e-2);
         }
+
+    }
+
+    #[test]
+    fn tridiag_eigensolver_test_only_eigenvalues(){
+        let config = EigenConfig{ jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork:8, system_width: 10.};
+        let diag: Vec<f64> = (1..=5).map(|x| { x as f64}).collect();
+        let offdiag: Vec<f64> = vec![2.0; 4];
+        let res = solvers::tridiag_eigensolver(&config, diag, offdiag).unwrap();
+
+        assert_eq!(res.0.len(), 5);
+        assert_eq!(res.1.len(), 0);
 
     }
 }
