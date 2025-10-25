@@ -1,27 +1,27 @@
-extern crate core;
-
 use plotters::prelude::*;
 use bec_rust::{
     linalg::{EigenConfig, Jobz, Uplo},
 };
+use clap::Parser;
+use bec_rust::cli::*;
 use bec_rust::physics::TridiagHamiltonian;
 use bec_rust::linalg::solvers::tridiag_eigensolver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
-    // these will be Command Line Arguments
-    const NUM_STEPS: usize = 1024;
+    let args = Cli::parse();
+
     let config = EigenConfig::init(
-        Jobz::WithEigenvectors,
+        args.mode as Jobz,
         Uplo::LowerTriangle,
-        NUM_STEPS,
-        10.
+        args.step_num,
+        args.system_size
     );
 
-    // let hamiltonian = Hamiltonian::new(&config,0.1,true, true);
+    //let hamiltonian = Hamiltonian::new(&config,0.1,true, true);
     // let result = symmetric_eigensolver(&config, &hamiltonian.operator);
 
-    let hamiltonian = TridiagHamiltonian::new(&config,0.1,true, true);
+    let hamiltonian = TridiagHamiltonian::new(&config,0.1,args.trap, args.lattice);
     let result = tridiag_eigensolver(&config, hamiltonian.vectors.diag, hamiltonian.vectors.offdiag );
 
     let eigenvectors = match result {
@@ -29,11 +29,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(msg) => panic!("{:#?}", msg)
     };
 
-    let plotvec: Vec<_> = eigenvectors[0..NUM_STEPS]
+    let plotvec: Vec<_> = eigenvectors[0..args.step_num]
         .iter()
         .enumerate()
         .map(|(idx, val)| {
-            let xpos =  (10.0 * 0.5) - ((idx as f64) * 10.0)/(NUM_STEPS as f64);
+            let xpos =  (args.system_size * 0.5) - ((idx as f64) * 10.0)/(args.step_num as f64);
             (xpos, val.abs())
         })
         .collect();
@@ -65,6 +65,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //    .draw()?;
 
     root.present()?;
-
     Ok(())
 }

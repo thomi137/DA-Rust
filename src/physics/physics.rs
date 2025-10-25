@@ -1,7 +1,6 @@
 
  use num::pow;
- use crate::{FRAC_ROOT_TWO_PI, linalg};
- use linalg::EigenConfig;
+ use crate::linalg::EigenConfig;
 
  pub const PI: f64 = std::f64::consts::PI;
  pub const FRAC_ROOT_TWO_PI: f64 = 0.398942280401432677939946059934381868_f64;
@@ -22,7 +21,7 @@ impl Hamiltonian {
         let operator = init_operator(&num_steps, &system_width, &fnum_steps, &interaction_strength, &trap, &lattice, |row, col| {
             let step_size = system_width / fnum_steps;
             if row == col {
-                let wave_number = ( crate::PI * 40. ) / system_width.clone();
+                let wave_number = ( PI * 40. ) / system_width.clone();
                 let xpos = position(&col, &system_width, &fnum_steps);
                 let val = 1./(&step_size * &step_size)
                     + interaction_strength * pow(FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.), 2)
@@ -66,7 +65,7 @@ impl TridiagHamiltonian {
             .iter()
             .enumerate()
             .map(|(idx, _)| {
-                let wave_number = ( crate::PI * 40. ) / system_width.clone();
+                let wave_number = ( PI * 40. ) / system_width.clone();
                 let xpos = position(&idx, &system_width, &fnum_steps);
                 1./(&step_size * &step_size)
                     + interaction_strength.clone() * pow(FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.), 2)

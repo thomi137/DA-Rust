@@ -1,6 +1,9 @@
+use clap::ValueEnum;
+
 /// Linear Algebra used.
 /// at the moment, the eigenvalues and eigenvectors of a tridiagonal Matrix are used,
 /// so we will use LAPACK's dsyev
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
     pub enum Jobz {
         EigenValuesOnly,
         WithEigenvectors
@@ -14,7 +17,7 @@
         }
     }
 
-
+    #[derive(Clone, Debug)]
     pub enum Uplo {
         UpperTriangle,
         LowerTriangle
@@ -37,7 +40,7 @@
     /// * `upper_lower`: Upper or lower part of symmetric matrix not 0.
     /// * `n`: Matrix order. usize. We only need one rank, since we want a symmetric matrix.
     /// * `system_size`: width of the system
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     pub struct EigenConfig {
         pub jobz: u8,
         pub uplo: u8,

@@ -11,3 +11,4 @@ fftw = "0.8.0"
 lapack = "0.20.0"
 plotters = "0.3.3"
 spinoff = "0.8.0"
+clap = { version = "4.5.50", features = ["derive"] }

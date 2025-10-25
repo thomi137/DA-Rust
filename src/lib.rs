@@ -1,5 +1,6 @@
 pub mod linalg;
 pub mod physics;
+pub mod cli;
 
 // use fftw::{ types::{ Sign, c64}, plan,};
 // use num::{Complex};
