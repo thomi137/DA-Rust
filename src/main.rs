@@ -1,3 +1,5 @@
+extern crate core;
+
 use plotters::prelude::*;
 use bec_rust::{
     linalg::{EigenConfig, Jobz, Uplo},
@@ -22,8 +24,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hamiltonian = TridiagHamiltonian::new(&config,0.1,true, true);
     let result = tridiag_eigensolver(&config, hamiltonian.vectors.diag, hamiltonian.vectors.offdiag );
 
-
-    let eigenvectors = result.unwrap().1;
+    let eigenvectors = match result {
+        Ok(result) => result.1,
+        Err(msg) => panic!("{:#?}", msg)
+    };
 
     let plotvec: Vec<_> = eigenvectors[0..NUM_STEPS]
         .iter()
