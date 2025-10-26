@@ -13,7 +13,6 @@ jobs:
     env:
       PKG_CONFIG_ALLOW_SYSTEM_LIBS: 1
       PKG_CONFIG_ALLOW_SYSTEM_CFLAGS: 1
-      RUSTFLAGS: -C link-args=-lopenblas -C link-args=-lpthread -C link-args=-lm
     steps:
       - uses: actions/checkout@v3
 
@@ -40,7 +39,11 @@ jobs:
           override: true
 
       - name: Build project
-        run: cargo build --release
+      - run: |
+          export RUSTFLAGS="-C link-args=-lopenblas"
+          export RUSTFLAGS="$RUSTFLAGS -C link-args=-lpthread"
+          export RUSTFLAGS="$RUSTFLAGS -C link-args=-lm"
+          cargo build --release
 
       - name: Run tests
         run: cargo test --release
