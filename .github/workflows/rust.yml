@@ -1,8 +1,8 @@
-name: Rust
+name: Test
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "test" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -28,7 +28,7 @@ jobs:
           echo "OPENBLAS_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
           echo "LAPACK_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
           echo "FFTW_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-    - name: Run check
-      run: cargo check
+    - name: Run tests
+      run: cargo run nextest
           
 
