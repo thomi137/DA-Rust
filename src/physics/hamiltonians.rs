@@ -1,6 +1,6 @@
 
  use num::pow;
- use crate::linalg::EigenConfig;
+ use crate::linalg::{EigenConfig};
 
  pub const PI: f64 = std::f64::consts::PI;
  pub const FRAC_ROOT_TWO_PI: f64 = 0.398942280401432677939946059934381868_f64;
@@ -104,7 +104,7 @@ pub fn position(index: &usize, system_width: &f64, fnum_steps: &f64) -> f64 {
 }
 
 pub fn potential(location: &f64, wave_number: &f64, trap: &bool, lattice: &bool) -> f64 {
-    let sinx = f64::sin( wave_number * location );
+    let sinx = f64::sin(wave_number * location);
 
     match (trap, lattice) {
         (true, false) => location * location * 0.5,
@@ -121,3 +121,34 @@ pub fn potential(location: &f64, wave_number: &f64, trap: &bool, lattice: &bool)
     }
 }
 
+ #[cfg(test)]
+ mod tests {
+     use crate::physics::hamiltonians::{position, potential};
+
+     #[test]
+     fn test_position() {
+         let pos = position(&5, &10., &10.);
+         let pos2 = position(&10, &10., &10.);
+
+         assert_eq!(pos, 0.0);
+         assert_eq!(pos2, -5.0);
+     }
+
+     // Trap only, Harmonic Oscillator
+     #[test]
+     fn test_potential() {
+         let osc_pot = potential(&0., &1., &true, &false);
+         let osc_pot2 = potential(&-5.0, &1., &true, &false);
+
+         assert_eq!(osc_pot, 0.);
+         assert_eq!(osc_pot2, 12.5);
+     }
+
+     // Lattice only. Sin^2 -like potential
+     #[test]
+     fn test_lat_potential() {
+         let lat_pot = potential(&0., &1., &false, &true);
+
+         assert_eq!(lat_pot, 0.);
+     }
+ }

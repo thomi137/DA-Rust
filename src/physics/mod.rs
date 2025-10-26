@@ -1,3 +1,3 @@
-pub mod physics;
+pub mod hamiltonians;
 
-pub use physics::*;
+pub use hamiltonians::*;
