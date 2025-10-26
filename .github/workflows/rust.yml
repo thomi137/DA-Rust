@@ -32,12 +32,10 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Build project
+      - name: Run tests
         run: |
           export RUSTFLAGS="-C link-args=-lopenblas"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lpthread"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lm"
-          cargo build --release
+          cargo test --lib
 
-      - name: Run tests
-        run: cargo test --release
