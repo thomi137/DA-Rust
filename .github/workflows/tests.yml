@@ -2,7 +2,8 @@ name: Tests
 
 on:
   push:
-  pull_request:
+    branches:
+      - test
 
 jobs:
   test:
@@ -24,7 +25,7 @@ jobs:
 
       - name: Run tests (JUnit report)
         run: |
-          cargo nextest run -- --reporter=github --workspace
+          cargo nextest run --profile ci 
 
       - name: Upload JUnit report to GitHub
         uses: mikepenz/action-junit-report@v4
