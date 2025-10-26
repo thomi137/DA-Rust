@@ -57,6 +57,8 @@ jobs:
 
       # 6️⃣ Build your project
       - name: Build (verbose)
+        env:
+          RUSTFLAGS: "-C link-args=-lopenblas -llapack -lblas -lgfortran"
         run: |
           cargo clean
           cargo build -vv
