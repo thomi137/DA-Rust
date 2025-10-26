@@ -1,68 +1,55 @@
-name: Build Rust project with LAPACK/OpenBLAS
+name: Rust with LAPACK
 
 on:
   push:
-    branches: [test]
   pull_request:
-  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-      # 1️⃣ Checkout your code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Install Rust toolchain
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
-      # 3️⃣ Install dependencies (LAPACK, OpenBLAS, Fortran compiler)
-      - name: Install system LAPACK/BLAS
+      # 🧰 Install dependencies
+      - name: Install system BLAS/LAPACK
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential gfortran \
-            libopenblas-dev liblapack-dev pkg-config
+          sudo apt-get install -y libopenblas-dev liblapack-dev gfortran
 
-      # 4️⃣ Verify available libraries and symbols
-      - name: Verify LAPACK/BLAS setup
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
         run: |
-          echo ">>> pkg-config info"
-          pkg-config --libs lapack
-          pkg-config --libs blas
-          echo
-          echo ">>> Check if dstev_ symbol exists in OpenBLAS"
-          nm -D /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.so | grep dstev_ || echo "symbol not found"
+          brew update
+          brew install openblas lapack
 
-      # 5️⃣ Configure linker and library path (no source pollution)
-      - name: Configure environment for correct linking
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
         run: |
-          # Gather link flags automatically from pkg-config
-          LAPACK_FLAGS="$(pkg-config --libs lapack) $(pkg-config --libs blas) -lgfortran"
-          echo "RUSTFLAGS=-C linker=cc -C link-args='${LAPACK_FLAGS}" >> $GITHUB_ENV
+          choco install openblas
 
-          # Ensure the runtime linker finds OpenBLAS/LAPACK at execution time
-          echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/openblas-pthread:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-
-          echo "Configured:"
-          echo "RUSTFLAGS=$RUSTFLAGS"
-          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-
-      # 6️⃣ Build your project
-      - name: Build (verbose)
-        env:
-          RUSTFLAGS: "-C link-args=-lopenblas -llapack -lblas -lgfortran"
+      # 🧠 Configure Rust to link against system libraries
+      - name: Configure environment
         run: |
-          cargo clean
-          cargo build -vv
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            echo "RUSTFLAGS=-C link-args=-lopenblas -llapack -lblas -lgfortran" >> $GITHUB_ENV
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            echo "RUSTFLAGS=-C link-args=-lopenblas -llapack -lblas" >> $GITHUB_ENV
+          else
+            echo "RUSTFLAGS=-C link-args=-lopenblas" >> $GITHUB_ENV
+          fi
 
-      # 7️⃣ Optionally run tests
+      # 🦀 Build & test
+      - name: Build project
+        run: cargo build --verbose
+
       - name: Run tests
-        run: cargo test -- --nocapture
+        run: cargo test --verbose
