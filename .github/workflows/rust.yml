@@ -13,7 +13,7 @@ jobs:
     env:
       PKG_CONFIG_ALLOW_SYSTEM_LIBS: 1
       PKG_CONFIG_ALLOW_SYSTEM_CFLAGS: 1
-      OPENBLAS_DIR: /usr/lib/x86_64-linux-gnu
+      RUSTFLAGS: "-C link-args='-L/usr/lib/x86_64-linux-gnu"
 
     steps:
       - uses: actions/checkout@v3
