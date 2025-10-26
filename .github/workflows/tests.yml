@@ -1,14 +1,38 @@
 name: Tests
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
 
 jobs:
   test:
+    name: Run Rust tests with nextest
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo install cargo-nextest --locked
-      - run: cargo nextest run --reporter=junit --output-file=nextest.xml
-      - uses: mikepenz/action-junit-report@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest --locked
+
+      - name: Run tests (JUnit report)
+        run: |
+          cargo nextest run \
+            --profile ci \
+            --reporter=junit \
+            --output-file nextest.xml
+
+      - name: Upload JUnit report to GitHub
+        uses: mikepenz/action-junit-report@v4
         with:
           report_paths: nextest.xml
+          check_name: "Test Results"
+          fail_on_failure: true
+
