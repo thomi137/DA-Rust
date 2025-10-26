@@ -15,7 +15,7 @@ jobs:
 
       # 2️⃣ Set up Rust
       - name: Set up Rust
-        uses: actions/setup-rust@v1
+      - uses: rust-lang/setup-rust@v1
         with:
           rust-version: stable
 
