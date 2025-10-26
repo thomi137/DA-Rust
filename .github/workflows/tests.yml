@@ -11,6 +11,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install system libraries
+        run: sudo apt-get update && sudo apt-get install -y \
+          libopenblas-dev liblapack-dev
+
+      - name: Install FFTW
+        run: sudo apt-get install -y libfftw3-dev
+
+      - name: Set env variables for LAPACK/FFTW
+        run: |
+          echo "OPENBLAS_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          echo "FFTW_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
