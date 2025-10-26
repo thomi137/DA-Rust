@@ -1,45 +1,47 @@
-name: Rust with LAPACK
+name: Rust CI
 
 on:
   push:
-    branches: [test]
+    branches: [ test ]
   pull_request:
+    branches: [ test ]
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+
+    env:
+      PKG_CONFIG_ALLOW_SYSTEM_LIBS: 1
+      PKG_CONFIG_ALLOW_SYSTEM_CFLAGS: 1
+      OPENBLAS_DIR: /usr/lib/x86_64-linux-gnu
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      # 🧰 Install dependencies
-      - name: Install system BLAS/LAPACK
-        if: runner.os == 'Linux'
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopenblas-dev liblapack-dev gfortran fontconfig libfontconfig1-dev pkg-config
+          sudo apt-get install -y \
+            libopenblas-dev \
+            liblapack-dev \
+            gfortran \
+            fontconfig \
+            libfontconfig1-dev \
+            pkg-config
 
-      # 🧠 Configure Rust to link against system libraries
-      - name: Configure environment
+      - name: Set linker flags for Rust
         run: |
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            echo "RUSTFLAGS=-C link-args=-lopenblas -llapack -lblas -lgfortran" >> $GITHUB_ENV
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            echo "RUSTFLAGS=-C link-args=-lopenblas -llapack -lblas" >> $GITHUB_ENV
-          else
-            echo "RUSTFLAGS=-C link-args=-lopenblas" >> $GITHUB_ENV
-          fi
+          echo "RUSTFLAGS=-L $OPENBLAS_DIR -C link-args='-lopenblas -lpthread -lm'" >> $GITHUB_ENV
 
-      # 🦀 Build & test
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
       - name: Build project
-        run: cargo build --verbose
+        run: cargo build --release
 
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --release
