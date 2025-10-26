@@ -65,7 +65,6 @@ use clap::ValueEnum;
 
     pub mod solvers {
         use lapack::*;
-        use spinoff::{Color, Spinner, spinners};
         use super::*;
 
         pub fn symmetric_eigensolver(config: &EigenConfig, hamiltonian: &Vec<f64>) -> Result<(Vec<f64>, Vec<f64>), String> {
@@ -105,7 +104,6 @@ use clap::ValueEnum;
 
             let mut info = 2934;
 
-            let mut sp = Spinner::new(spinners::Aesthetic, "Calculating Eigenvalues/Eigenvectors...", Color::Cyan);
             unsafe {
                 dstev(
                     jobz,
@@ -121,11 +119,9 @@ use clap::ValueEnum;
 
 
             if info == 0 {
-                sp.success("Done calculating");
                 return if !compute_vectors { Ok((diag, vec![])) } else if compute_vectors { Ok((diag, z)) } else { Ok((vec![], vec![])) }
             }
 
-            sp.fail("There has been an error");
             Err(format!("Algorithm failed: info is {}, please consult https://www.netlib.org/lapack/explore-html/db/daa/group__stev_ga774cb10a577ccdd97546ef1c5599f8ee.html#ga774cb10a577ccdd97546ef1c5599f8ee", info))
         }
     }

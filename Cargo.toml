@@ -9,6 +9,6 @@ edition = "2021"
 num = "0.4.3"
 fftw = "0.8.0"
 lapack = "0.20.0"
-plotters = "0.3.3"
+plotters = { version = "0.3.3", features = ["svg_backend", "bitmap_backend"] }
 spinoff = "0.8.0"
 clap = { version = "4.5.50", features = ["derive"] }
