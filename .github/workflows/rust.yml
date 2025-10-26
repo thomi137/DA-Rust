@@ -1,4 +1,4 @@
-name: Rust CI
+name: Rust CI Test
 
 on:
   push:
@@ -42,3 +42,10 @@ jobs:
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lm"
           cargo nextest run --profile ci
 
+      - name: Upload test results
+        uses: dorny/test-reporter@v1
+        with:
+          name: Rust Nextest
+          path: target/nextest/ci/junit.xml
+          reporter: junit
+          fail-on-error: true
