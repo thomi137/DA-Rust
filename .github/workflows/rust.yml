@@ -2,6 +2,7 @@ name: Rust with LAPACK
 
 on:
   push:
+    branches: [test]
   pull_request:
 
 jobs:
@@ -24,17 +25,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libopenblas-dev liblapack-dev gfortran fontconfig libfontconfig1-dev pkg-config
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install openblas lapack
-
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          choco install openblas
 
       # 🧠 Configure Rust to link against system libraries
       - name: Configure environment
