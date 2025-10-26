@@ -1,48 +1,69 @@
-name: Test
+name: Debug Rust + LAPACK Linking
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "test" ]
-
-env:
-  CARGO_TERM_COLOR: always
+    branches: [test]
+  pull_request:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        components: rustfmt, clippy
-    - name: Install LAPACK/FFTW
-      run: |
+      # --- 1. Checkout code ---
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- 2. Install Rust ---
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      # --- 3. Install all LAPACK/BLAS variants ---
+      - name: Install LAPACK, OpenBLAS, Atlas, Fortran
+        run: |
           sudo apt-get update
-          sudo apt-get install -y libblas-dev libopenblas-dev liblapack-dev liblapacke-dev libfftw3-dev libfontconfig1-dev pkg-config build-essential gfortran
-    - name: Install cargo-nextest
-      run: |
-          cargo install cargo-nextest --locked --force
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          sudo apt-get install -y \
+            build-essential gfortran \
+            libblas-dev liblapack-dev \
+            libopenblas-dev libatlas-base-dev pkg-config
 
-    - name: Set library environment variables
-      run: |
-          echo "LAPACK_LIB=openblas" >> $GITHUB_ENV
-          echo "LAPACK_LINK_TYPE=dylib" >> $GITHUB_ENV
-          echo "export LAPACK_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          echo "export LAPACK_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
-          echo "export BLAS_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          echo "export OPENBLAS_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
-          echo "export RUSTFLAGS='-C link-args=-lopenblas link-arg=-undefined link-arg=dynamic_lookup'" >> $GITHUB_ENV
-          echo "FFTW_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-  - name: Debug linker paths
-    run: |
-      ls /usr/lib/x86_64-linux-gnu | grep -E 'lapack|blas|openblas'
-      pkg-config --libs lapack || true
-          
+      # --- 4. Display what libraries exist ---
+      - name: List LAPACK/BLAS libraries
+        run: |
+          echo ">>> List of LAPACK/BLAS libs in /usr/lib/x86_64-linux-gnu"
+          ls -l /usr/lib/x86_64-linux-gnu | grep -E 'blas|lapack|openblas|atlas' || true
+          echo
+          echo ">>> pkg-config info"
+          pkg-config --libs lapack || true
+          pkg-config --libs blas || true
+          echo
+          echo ">>> Check if dstev_ symbol exists in OpenBLAS"
+          nm -D /usr/lib/x86_64-linux-gnu/libopenblas.so | grep dstev_ || echo "symbol not found"
 
+      # --- 5. Configure environment for Cargo build ---
+      - name: Configure environment
+        run: |
+          echo "LAPACK_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          echo "LAPACK_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
+          echo "BLAS_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          echo "OPENBLAS_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          # Force Cargo to use system 'cc' linker instead of rust-lld
+          echo "RUSTFLAGS=-C linker=cc -C link-args=-lopenblas" >> $GITHUB_ENV
+
+      # --- 6. Show Rust environment before build ---
+      - name: Show environment
+        run: |
+          rustc --version
+          echo "RUSTFLAGS=$RUSTFLAGS"
+          echo "LAPACK_LIB_DIR=$LAPACK_LIB_DIR"
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+          echo
+          echo ">>> ldconfig -p | grep blas"
+          ldconfig -p | grep blas || true
+          echo ">>> ldconfig -p | grep lapack"
+          ldconfig -p | grep lapack || true
