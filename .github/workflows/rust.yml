@@ -33,7 +33,7 @@ jobs:
           override: true
 
       - name: Install Nextest
-        run: cargo install nextest
+        run: cargo install --locked cargo-nextest
 
       - name: Run tests
         run: |
