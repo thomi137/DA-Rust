@@ -13,7 +13,7 @@ jobs:
     env:
       PKG_CONFIG_ALLOW_SYSTEM_LIBS: 1
       PKG_CONFIG_ALLOW_SYSTEM_CFLAGS: 1
-        RUSTFLAGS: -C link-args=-lopenblas -C link-args=-lpthread -C link-args=-lm
+      RUSTFLAGS: -C link-args=-lopenblas -C link-args=-lpthread -C link-args=-lm
     steps:
       - uses: actions/checkout@v3
 
