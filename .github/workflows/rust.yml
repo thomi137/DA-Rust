@@ -39,7 +39,7 @@ jobs:
           override: true
 
       - name: Build project
-      - run: |
+        run: |
           export RUSTFLAGS="-C link-args=-lopenblas"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lpthread"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lm"
