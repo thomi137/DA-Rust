@@ -46,7 +46,7 @@ jobs:
         run: |
           # Gather link flags automatically from pkg-config
           LAPACK_FLAGS="$(pkg-config --libs lapack) $(pkg-config --libs blas) -lgfortran"
-          echo "RUSTFLAGS=-C linker=cc -C link-args='${LAPACK_FLAGS}'" >> $GITHUB_ENV
+          echo "RUSTFLAGS=-C linker=cc -C link-args='${LAPACK_FLAGS}" >> $GITHUB_ENV
 
           # Ensure the runtime linker finds OpenBLAS/LAPACK at execution time
           echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/openblas-pthread:$LD_LIBRARY_PATH" >> $GITHUB_ENV
