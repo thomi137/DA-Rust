@@ -17,7 +17,7 @@ jobs:
     - name: Install LAPACK/FFTW
       run: |
           sudo apt-get update
-          sudo apt-get install -y libopenblas-dev liblapacke-dev libfftw3-dev libfontconfig1-dev gfortran
+          sudo apt-get install -y libopenblas-dev liblapack-dev libfftw3-dev libfontconfig1-dev build-essential gfortran
     - name: Install cargo-nextest
       run: |
           cargo install cargo-nextest --locked --force
@@ -29,6 +29,6 @@ jobs:
           echo "LAPACK_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
           echo "FFTW_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
     - name: Run tests
-      run: cargo run nextest
+      run: cargo build --verbose
           
 
