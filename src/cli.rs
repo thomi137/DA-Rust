@@ -3,14 +3,18 @@ use crate::linalg::Jobz;
 
 #[derive(Parser, Debug)]
 #[command(
-author="Thomas <thomas@prosser.ch>",
+author="Thomas Prosser <thomas@prosser.ch>",
 version,
 about = "Simulation of kicked Bose-Einstein Condensates",
 long_about = None)]
 pub struct Cli {
     /// Optional output file name (required if flag is used)
-    #[arg(short, long, value_name = "FILE")]
+    #[arg(short, long, requires="format", value_name = "FILE")]
     pub output: Option<String>,
+
+    /// File format. Only mandatory if output is set
+    #[arg(short, long, value_parser=["png", "svg"])]
+    pub format: Option<String>,
 
     /// Number of steps to use
     #[arg(short='n', long)]

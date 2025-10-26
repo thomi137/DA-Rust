@@ -4,12 +4,15 @@ use plotters::coord::Shift;
 use spinoff::{Spinner, spinners, Color};
 
 use bec_rust::{
-    linalg::{EigenConfig, Jobz, Uplo},
+    linalg::{
+        EigenConfig,
+        Jobz,
+        Uplo,
+        solvers::tridiag_eigensolver},
 };
 use clap::Parser;
 use bec_rust::cli::*;
 use bec_rust::physics::TridiagHamiltonian;
-use bec_rust::linalg::solvers::tridiag_eigensolver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
@@ -41,17 +44,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let plotvec: Vec<(f64, f64)> = eigenvectors[0..args.step_num]
-        .iter()
-        .enumerate()
-        .map(|(idx, val)| {
-            let xpos =  (args.system_size * 0.5) - ((idx as f64) * args.system_size)/(args.step_num as f64);
-            (xpos, val.abs())
-        })
-        .collect();
+    if let Some(output) = args.output {
 
-    sp.update_text("Starting plog");
-    make_plot("png", "result", &plotvec).expect("TODO: panic message");
+        let filename: String = output;
+
+        // Just to make very sure.
+        let format: String = args.format.unwrap_or("png".to_string());
+
+        let plotvec: Vec<(f64, f64)> = eigenvectors[0..args.step_num]
+            .iter()
+            .enumerate()
+            .map(|(idx, val)| {
+                let xpos =  (args.system_size * 0.5) - ((idx as f64) * args.system_size)/(args.step_num as f64);
+                (xpos, val.abs())
+            })
+            .collect();
+
+        sp.update_text("Starting plot");
+        make_plot(&format, &filename, &plotvec).expect("TODO: panic message");
+    }
+
 
 
        // .label("y = x^2")
@@ -79,7 +91,7 @@ fn make_plot(format: &str, filename: &str, plotvec: &Vec<(f64, f64)>) -> Result<
         },
         "svg" => {
             let root = SVGBackend::new(&path,(800, 600) ).into_drawing_area();
-            let _ = draw_chart(&root, plotvec);
+            let _ = draw_chart(&root, &plotvec);
             root.present()?;
         },
         other =>  {
@@ -98,8 +110,8 @@ fn draw_chart<DB: DrawingBackend>(root: &DrawingArea<DB, Shift>, data: &Vec<(f64
     let (y_min, y_max) = data.iter().copied().map(|(_, y)| y).fold((f64::INFINITY, f64::NEG_INFINITY), |(lo, hi), y| (lo.min(y), hi.max(y)));
 
     let mut chart = ChartBuilder::on(&root)
-        .caption("BEC Groundstate", ("sans-serif", 50).into_font())
-        .margin(10)
+        .caption("BEC Groundstate", ("sans-serif", 32).into_font())
+        .margin(20)
         .x_label_area_size(30)
         .y_label_area_size(30)
         .build_cartesian_2d(x_min..x_max, y_min..y_max)?;
