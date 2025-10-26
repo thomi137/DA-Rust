@@ -1,69 +1,66 @@
-name: Debug Rust + LAPACK Linking
+name: Build Rust project with LAPACK/OpenBLAS
 
 on:
-  workflow_dispatch:
   push:
-    branches: [test]
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # --- 1. Checkout code ---
+      # 1️⃣ Checkout your code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- 2. Install Rust ---
-      - name: Install Rust toolchain
+      # 2️⃣ Install Rust toolchain
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
           override: true
 
-      # --- 3. Install all LAPACK/BLAS variants ---
-      - name: Install LAPACK, OpenBLAS, Atlas, Fortran
+      # 3️⃣ Install dependencies (LAPACK, OpenBLAS, Fortran compiler)
+      - name: Install system LAPACK/BLAS
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential gfortran \
-            libblas-dev liblapack-dev \
-            libopenblas-dev libatlas-base-dev pkg-config
+            libopenblas-dev liblapack-dev pkg-config
 
-      # --- 4. Display what libraries exist ---
-      - name: List LAPACK/BLAS libraries
+      # 4️⃣ Verify available libraries and symbols
+      - name: Verify LAPACK/BLAS setup
         run: |
-          echo ">>> List of LAPACK/BLAS libs in /usr/lib/x86_64-linux-gnu"
-          ls -l /usr/lib/x86_64-linux-gnu | grep -E 'blas|lapack|openblas|atlas' || true
-          echo
           echo ">>> pkg-config info"
-          pkg-config --libs lapack || true
-          pkg-config --libs blas || true
+          pkg-config --libs lapack
+          pkg-config --libs blas
           echo
           echo ">>> Check if dstev_ symbol exists in OpenBLAS"
-          nm -D /usr/lib/x86_64-linux-gnu/libopenblas.so | grep dstev_ || echo "symbol not found"
+          nm -D /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.so | grep dstev_ || echo "symbol not found"
 
-      # --- 5. Configure environment for Cargo build ---
-      - name: Configure environment
+      # 5️⃣ Configure linker and library path (no source pollution)
+      - name: Configure environment for correct linking
         run: |
-          echo "LAPACK_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          echo "LAPACK_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
-          echo "BLAS_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          echo "OPENBLAS_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          # Force Cargo to use system 'cc' linker instead of rust-lld
-          echo "RUSTFLAGS=-C linker=cc -C link-args=-lopenblas" >> $GITHUB_ENV
+          # Gather link flags automatically from pkg-config
+          LAPACK_FLAGS="$(pkg-config --libs lapack) $(pkg-config --libs blas) -lgfortran"
+          echo "RUSTFLAGS=-C linker=cc -C link-args='${LAPACK_FLAGS}'" >> $GITHUB_ENV
 
-      # --- 6. Show Rust environment before build ---
-      - name: Show environment
-        run: |
-          rustc --version
+          # Ensure the runtime linker finds OpenBLAS/LAPACK at execution time
+          echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/openblas-pthread:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+          echo "Configured:"
           echo "RUSTFLAGS=$RUSTFLAGS"
-          echo "LAPACK_LIB_DIR=$LAPACK_LIB_DIR"
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-          echo
-          echo ">>> ldconfig -p | grep blas"
-          ldconfig -p | grep blas || true
-          echo ">>> ldconfig -p | grep lapack"
-          ldconfig -p | grep lapack || true
+
+      # 6️⃣ Build your project
+      - name: Build (verbose)
+        run: |
+          cargo clean
+          cargo build -vv
+
+      # 7️⃣ Optionally run tests
+      - name: Run tests
+        run: cargo test -- --nocapture
