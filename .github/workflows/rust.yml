@@ -22,3 +22,13 @@ jobs:
       run: |
           cargo install cargo-nextest --locked --force
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Set library environment variables
+      run: |
+          echo "OPENBLAS_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          echo "LAPACK_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          echo "FFTW_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+    - name: Run check
+      run: cargo check
+          
+
