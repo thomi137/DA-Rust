@@ -65,7 +65,7 @@ use clap::ValueEnum;
 
 #[cfg(test)]
 mod tests {
-    use crate::linalg::{EigenConfig, Jobz, Uplo};
+    use crate::math::{EigenConfig, Jobz, Uplo};
 
     #[test]
     fn test_eigenconfig() {

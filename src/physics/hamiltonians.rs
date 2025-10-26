@@ -1,6 +1,6 @@
 
  use num::pow;
- use crate::linalg::{EigenConfig};
+ use crate::math::{EigenConfig};
 
  pub const PI: f64 = std::f64::consts::PI;
  pub const FRAC_ROOT_TWO_PI: f64 = 0.398942280401432677939946059934381868_f64;

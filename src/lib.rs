@@ -1,4 +1,4 @@
-pub mod linalg;
+pub mod math;
 pub mod physics;
 pub mod cli;
 

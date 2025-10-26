@@ -61,7 +61,7 @@ pub fn tridiag_eigensolver(config: &EigenConfig, mut diag: Vec<f64>, mut offdiag
 
 #[cfg(test)]
 mod tests {
-    use crate::linalg::{EigenConfig, solvers};
+    use crate::math::{EigenConfig, solvers};
 
     #[test]
     fn eigensolver_test() {

@@ -1,5 +1,5 @@
 use clap::{arg, Parser};
-use crate::linalg::Jobz;
+use crate::math::Jobz;
 
 #[derive(Parser, Debug)]
 #[command(

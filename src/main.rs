@@ -4,7 +4,7 @@ use plotters::coord::Shift;
 use spinoff::{Spinner, spinners, Color};
 
 use bec_rust::{
-    linalg::{
+    math::{
         EigenConfig,
         Jobz,
         Uplo,
