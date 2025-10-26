@@ -13,13 +13,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Rust
+      # 2️⃣ Set up Rust toolchain
       - name: Set up Rust
-        uses: rust-lang/setup-rust@v1
+        uses: actions-rust/setup-rust-toolchain@v1
         with:
-          rust-version: stable
+          toolchain: stable
 
-      # 3️⃣ Install system libraries for LAPACK / FFTW
+      # 3️⃣ Install system dependencies for LAPACK / FFTW
       - name: Install system dependencies
         run: |
           sudo apt-get update
