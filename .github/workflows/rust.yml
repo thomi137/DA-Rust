@@ -40,5 +40,5 @@ jobs:
           export RUSTFLAGS="-C link-args=-lopenblas"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lpthread"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lm"
-          cargo nextest --profile ci
+          cargo nextest run --profile ci
 
