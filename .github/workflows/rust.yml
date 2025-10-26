@@ -35,7 +35,7 @@ jobs:
           echo "export LAPACK_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
           echo "export BLAS_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
           echo "export OPENBLAS_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          echo "export RUSTFLAGS='-C link-args=-lopenblas'" >> $GITHUB_ENV
+          echo "export RUSTFLAGS='-C link-args=-lblas'" >> $GITHUB_ENV
           echo "FFTW_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
     - name: Run tests
       run: cargo build --verbose
