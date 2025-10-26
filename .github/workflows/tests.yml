@@ -2,8 +2,7 @@ name: Rust CI
 
 on:
   push:
-    branches:
-      - test
+  pull_request:
 
 jobs:
   test:
@@ -11,16 +10,17 @@ jobs:
 
     steps:
       # 1️⃣ Checkout repository
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       # 2️⃣ Set up Rust
       - name: Set up Rust
-      - uses: rust-lang/setup-rust@v1
+        uses: rust-lang/setup-rust@v1
         with:
           rust-version: stable
 
-      # 3️⃣ Install system dependencies for LAPACK and FFTW
-      - name: Install system libraries
+      # 3️⃣ Install system libraries for LAPACK / FFTW
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libopenblas-dev liblapack-dev libfftw3-dev
@@ -30,15 +30,14 @@ jobs:
         run: |
           cargo install cargo-nextest --locked --force
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          cargo nextest --version
 
-      # 5️⃣ Optional: set environment variables if crates require them
+      # 5️⃣ Optional: set environment variables if your Rust crates need them
       - name: Set library environment variables
         run: |
           echo "OPENBLAS_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
           echo "LAPACK_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
           echo "FFTW_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
 
-      # 6️⃣ Run tests with cargo-nextest
+      # 6️⃣ Run tests using cargo-nextest
       - name: Run tests
-        run: cargo nextest run --workspace --profile ci
+        run: cargo nextest run --workspace
