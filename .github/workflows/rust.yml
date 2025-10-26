@@ -23,7 +23,7 @@ jobs:
     - name: Install LAPACK/FFTW
       run: |
           sudo apt-get update
-          sudo apt-get install -y libblas-dev libopenblas-dev liblapack-dev libfftw3-dev libfontconfig1-dev build-essential gfortran
+          sudo apt-get install -y libblas-dev libopenblas-dev liblapack-dev liblapacke-dev libfftw3-dev libfontconfig1-dev build-essential gfortran
     - name: Install cargo-nextest
       run: |
           cargo install cargo-nextest --locked --force
@@ -35,6 +35,7 @@ jobs:
           echo "export LAPACK_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
           echo "export BLAS_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
           echo "export OPENBLAS_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
           echo "export RUSTFLAGS='-C link-args=-lblas link-arg=-undefined link-arg=dynamic_lookup'" >> $GITHUB_ENV
           echo "FFTW_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
     - name: Run tests
