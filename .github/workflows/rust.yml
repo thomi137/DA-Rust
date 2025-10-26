@@ -47,5 +47,5 @@ jobs:
         with:
           name: Rust Nextest
           path: target/nextest/ci/junit.xml
-          reporter: junit
+          reporter: github
           fail-on-error: true
