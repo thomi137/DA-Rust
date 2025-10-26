@@ -24,7 +24,7 @@ jobs:
 
       - name: Run tests (JUnit report)
         run: |
-          cargo nextest run --reporter=github --workspace
+          cargo nextest run -- --reporter=github --workspace
 
       - name: Upload JUnit report to GitHub
         uses: mikepenz/action-junit-report@v4
