@@ -3,8 +3,6 @@ name: Rust CI
 on:
   push:
     branches: [ test ]
-  pull_request:
-    branches: [ test ]
 
 jobs:
   build:
@@ -29,7 +27,7 @@ jobs:
 
       - name: Set linker flags for Rust
         run: |
-          echo "RUSTFLAGS=-L $OPENBLAS_DIR -C link-args='-lopenblas -lpthread -lm'" >> $GITHUB_ENV
+          echo "RUSTFLAGS= -C link-args='-lopenblas -lpthread -lm'" >> $GITHUB_ENV
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
