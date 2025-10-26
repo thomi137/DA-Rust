@@ -25,10 +25,6 @@ jobs:
             libfontconfig1-dev \
             pkg-config
 
-      - name: Set linker flags for Rust
-        run: |
-          echo "RUSTFLAGS= -C link-args='-lopenblas -lpthread -lm'" >> $GITHUB_ENV
-
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
