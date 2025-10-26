@@ -32,10 +32,13 @@ jobs:
           profile: minimal
           override: true
 
+      - name: Install Nextest
+        run: cargo install nextest
+
       - name: Run tests
         run: |
           export RUSTFLAGS="-C link-args=-lopenblas"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lpthread"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lm"
-          cargo test --lib
+          cargo nextest --profile ci
 
