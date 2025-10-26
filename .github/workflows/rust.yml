@@ -31,6 +31,8 @@ jobs:
 
     - name: Set library environment variables
       run: |
+          echo "LAPACK_LIB=openblas" >> $GITHUB_ENV
+          echo "LAPACK_LINK_TYPE=dylib" >> $GITHUB_ENV
           echo "export LAPACK_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
           echo "export LAPACK_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
           echo "export BLAS_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
