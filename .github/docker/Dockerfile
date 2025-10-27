@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libfontconfig1-dev \
     fontconfig \
+    make \
+    autoconf \
+    file \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN cargo install cargo-nextest --locked
