@@ -11,6 +11,8 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/rust-ci-base:latest
 
     env:
       PKG_CONFIG_ALLOW_SYSTEM_LIBS: 1
@@ -30,34 +32,34 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libopenblas-dev \
-            liblapack-dev \
-            gfortran \
-            fontconfig \
-            libfontconfig1-dev \
-            pkg-config
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-
-      - name: Cache Nextest
-        id: cache-nextest
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/cargo-nextest
-          key: nextest-bin-v0.9
-
-      - name: Install Nextest if not cached
-        if: steps.cache-nextest.outputs.cache-hit != 'true'
-        run: cargo install --locked cargo-nextest
+#      - name: Install system dependencies
+#        run: |
+#          sudo apt-get update
+#          sudo apt-get install -y \
+#            libopenblas-dev \
+#            liblapack-dev \
+#            gfortran \
+#            fontconfig \
+#            libfontconfig1-dev \
+#            pkg-config
+#
+#      - name: Install Rust
+#        uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: stable
+#          profile: minimal
+#          override: true
+#
+#      - name: Cache Nextest
+#        id: cache-nextest
+#        uses: actions/cache@v4
+#        with:
+#          path: ~/.cargo/bin/cargo-nextest
+#          key: nextest-bin-v0.9
+#
+#      - name: Install Nextest if not cached
+#        if: steps.cache-nextest.outputs.cache-hit != 'true'
+#        run: cargo install --locked cargo-nextest
 
       - name: Run tests
         run: |
