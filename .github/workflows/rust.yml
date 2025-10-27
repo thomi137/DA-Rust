@@ -17,13 +17,14 @@ jobs:
     outputs:
       junit-path: target/nextest/ci/junit.xml
 
-
     env:
       PKG_CONFIG_ALLOW_SYSTEM_LIBS: 1
       PKG_CONFIG_ALLOW_SYSTEM_CFLAGS: 1
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Cache Cargo
         uses: actions/cache@v4
@@ -36,48 +37,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-#      - name: Install system dependencies
-#        run: |
-#          sudo apt-get update
-#          sudo apt-get install -y \
-#            libopenblas-dev \
-#            liblapack-dev \
-#            gfortran \
-#            fontconfig \
-#            libfontconfig1-dev \
-#            pkg-config
-#
-#      - name: Install Rust
-#        uses: actions-rs/toolchain@v1
-#        with:
-#          toolchain: stable
-#          profile: minimal
-#          override: true
-#
-#      - name: Cache Nextest
-#        id: cache-nextest
-#        uses: actions/cache@v4
-#        with:
-#          path: ~/.cargo/bin/cargo-nextest
-#          key: nextest-bin-v0.9
-#
-#      - name: Install Nextest if not cached
-#        if: steps.cache-nextest.outputs.cache-hit != 'true'
-#        run: cargo install --locked cargo-nextest
-
       - name: Run tests
         run: |
           mkdir -p target/nextest/ci
           export RUSTFLAGS="-C link-args=-lopenblas"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lpthread"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lm"
-          cargo nextest run --profile ci
+          cargo nextest run --reporter junit --output-path target/nextest/ci/junit.xml --profile ci
 
       - name: Upload artifact for host reporter
-          uses: actions/upload-artifact@v4
-          with:
-            name: junit-results
-            path: target/nextest/ci/junit.xml
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-results
+          path: target/nextest/ci/junit.xml
 
   report:
     runs-on: ubuntu-latest
@@ -85,11 +57,11 @@ jobs:
 
     steps:
       - uses: actions/download-artifact@v4
-          with:
-            name: junit-results
-            path: target/nextest/ci
-            
-      - name: Upload test results
+        with:
+          name: junit-results
+          path: target/nextest/ci
+
+      - name: Upload test results to GitHub
         uses: dorny/test-reporter@v1
         with:
           name: Rust Nextest
