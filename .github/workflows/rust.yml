@@ -14,6 +14,10 @@ jobs:
     container:
       image: ghcr.io/${{ github.repository_owner }}/rust-ci-base:latest
 
+    outputs:
+      junit-path: target/nextest/ci/junit.xml
+
+
     env:
       PKG_CONFIG_ALLOW_SYSTEM_LIBS: 1
       PKG_CONFIG_ALLOW_SYSTEM_CFLAGS: 1
@@ -69,6 +73,22 @@ jobs:
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lm"
           cargo nextest run --profile ci
 
+      - name: Upload artifact for host reporter
+          uses: actions/upload-artifact@v4
+          with:
+            name: junit-results
+            path: target/nextest/ci/junit.xml
+
+  report:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/download-artifact@v4
+          with:
+            name: junit-results
+            path: target/nextest/ci
+            
       - name: Upload test results
         uses: dorny/test-reporter@v1
         with:
