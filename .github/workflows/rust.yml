@@ -37,6 +37,7 @@ jobs:
 
       - name: Run tests
         run: |
+          mkdir -p target/nextest/ci
           export RUSTFLAGS="-C link-args=-lopenblas"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lpthread"
           export RUSTFLAGS="$RUSTFLAGS -C link-args=-lm"
