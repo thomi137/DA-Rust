@@ -1,3 +1,5 @@
+[![Rust CI Test](https://github.com/thomi137/DA-Rust/actions/workflows/rust.yml/badge.svg?branch=test)](https://github.com/thomi137/DA-Rust/actions/workflows/rust.yml)
+
 # DA-Rust
 Diploma thesis in physics ETH Zurich_
 Some code in Rust for learning purposes
