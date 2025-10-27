@@ -13,14 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/rust-ci-base:latest
-      options: --user root   # 👈 run as root so apt works
+      options: --user root
 
     env:
       PKG_CONFIG_ALLOW_SYSTEM_LIBS: 1
       PKG_CONFIG_ALLOW_SYSTEM_CFLAGS: 1
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 👈 ensures full git history for reporter
 
       - name: Ensure git is available
         run: |
