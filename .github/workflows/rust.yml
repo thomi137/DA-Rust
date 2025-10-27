@@ -61,6 +61,10 @@ jobs:
           name: junit-results
           path: target/nextest/ci
 
+      - name: Ensure git is available
+        run: |
+          apt-get update && apt-get install -y git
+
       - name: Upload test results to GitHub
         uses: dorny/test-reporter@v1
         with:
