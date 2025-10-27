@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/rust-ci-base:latest
+      options: --user root
 
     outputs:
       junit-path: target/nextest/ci/junit.xml
