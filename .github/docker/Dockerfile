@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     make \
     autoconf \
     file \
+    git \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN cargo install cargo-nextest --locked
