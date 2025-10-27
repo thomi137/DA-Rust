@@ -49,11 +49,11 @@ jobs:
           override: true
 
       - name: Cache Nextest
-          id: cache-nextest
-          uses: actions/cache@v4
-          with:
-            path: ~/.cargo/bin/cargo-nextest
-            key: nextest-bin-v0.9
+        id: cache-nextest
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-nextest
+          key: nextest-bin-v0.9
 
       - name: Install Nextest if not cached
         if: steps.cache-nextest.outputs.cache-hit != 'true'
