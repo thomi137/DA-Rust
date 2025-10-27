@@ -10,7 +10,7 @@ fn fft(n: &usize, direction: &Direction, plan: Plan, input: &Vec<c64> ) -> Resul
 
     let input: Vec<f64>;
     let output: Vec<f64>;
-    //let plan = C2CPlan64(&input, &output, Direction::Forward);;
+    let plan: C2CPlan64 = fftw_plan_dft();
 
 
     Ok(())
