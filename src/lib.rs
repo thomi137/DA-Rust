@@ -10,8 +10,6 @@ pub mod cli;
 
 //pub const E: f64 = std::f64::consts::E;
 
-//const I: c64 = Complex::I;
-
 
 
 
