@@ -10,35 +10,59 @@ use crate::physics::{PI, potential};
 const TWO_PI: f64 = 2.0 * PI;
 const I: Complex64 = Complex::I;
 
-fn fft(n: &usize, direction: Sign, input: &Vec<c64> ) -> Result<Vec<c64>, Box<dyn std::error::Error>> {
+pub struct FftHelper {
+    n: usize,
+    plan_fwd: C2CPlan64,
+    plan_bwd: C2CPlan64,
+    buffer_in: AlignedVec<c64>,
+    buffer_out: AlignedVec<c64>,
+}
 
-    let n = n.clone();
-    let mut plan: C2CPlan64 = C2CPlan::aligned(&[n], direction, Flag::MEASURE).unwrap();
-    let mut in_v = AlignedVec::new(n);
-    let mut out_v= AlignedVec::new(n);
-
-    for i in 0..n {
-        in_v[i] = c64::new(input[i].re, input[i].im);
+impl FftHelper {
+    pub fn new(n: usize) -> Result<Self, Box<dyn std::error::Error>> {
+        Ok(Self {
+            n,
+            plan_fwd: C2CPlan::aligned(&[n], Sign::Forward, Flag::MEASURE)?,
+            plan_bwd: C2CPlan::aligned(&[n], Sign::Backward, Flag::MEASURE)?,
+            buffer_in: AlignedVec::new(n),
+            buffer_out: AlignedVec::new(n),
+        })
     }
 
-    plan.c2c(&mut in_v, &mut out_v).unwrap();
+    pub fn fft(&mut self, direction: Sign, input: &[c64]) -> Result<Vec<c64>, Box<dyn std::error::Error>> {
+        // Copy input data into FFTW-aligned buffer
+        for (i, val) in input.iter().enumerate() {
+            self.buffer_in[i] = *val;
+        }
 
-    Ok(out_v.to_vec())
+        // Run appropriate plan
+        match direction {
+            Sign::Forward => self.plan_fwd.c2c(&mut self.buffer_in, &mut self.buffer_out)?,
+            Sign::Backward => self.plan_bwd.c2c(&mut self.buffer_in, &mut self.buffer_out)?,
+        }
+
+        Ok(self.buffer_out.to_vec())
+    }
 }
+
 
 // TODO: NEEDS Refactoring. I suspect I was pressed for time
 
 /// See thesis and references therein for an explanation of the split-step method.
 /// Maybe should create a Hamiltonian for ffts as well
-fn split_step_s3<'a>(system_size: &'a f64, deltat: &'a f64, omega: &'a f64, interaction_strength: &'a f64, data: &'a Vec<Complex64>) -> Result<Vec<Complex64>, Box<dyn std::error::Error>> {
+fn split_step_s3<'a>(
+    fftw: &'a mut FftHelper,
+    system_size: &'a f64,
+    deltat: &'a f64,
+    omega: &'a f64,
+    interaction_strength: &'a f64,
+    data: &[Complex64]) -> Result<Vec<Complex64>, Box<dyn std::error::Error>> {
 
     let q = PI * 40. / system_size.clone();
     let n = data.len();
 
-    let mut k_vec: Vec<Complex64> = vec![Complex64::from(0f64); n]
-        .iter()
-        .enumerate()
-        .map(|(idx, val)| -> Complex64 {
+    let mut k_vec: Vec<Complex64> = (0..n)
+        .map(|idx| -> Complex64 {
             if (idx as f64) < (n as f64)/2.0 {
                 Complex64::from((TWO_PI / system_size) * (idx as f64))
             } else {
@@ -47,76 +71,65 @@ fn split_step_s3<'a>(system_size: &'a f64, deltat: &'a f64, omega: &'a f64, inte
         })
         .collect();
 
-    let mut  k_fac: Vec<Complex64> = k_vec
+    let mut k_fac: Vec<Complex64> = k_vec
         .iter()
         .map(|x| -> Complex64 {
             Complex64::exp(((-I * deltat * omega ) * x.pow(2) )/ 2f64 )
         })
         .collect();
 
-    let mut ft = fft(&n, Sign::Forward, &data.to_vec()).unwrap();
+    let mut ft = fftw.fft(Sign::Forward, data)?;
 
-    // Normalize
-    let mult: Vec<Complex64> = ft.iter()
-        .zip(k_fac.iter())
-        .map(|(ft, k_fac )|{
-            ft * k_fac
-        })
-        .collect();
-    
-    let normalized: Vec<Complex64> = mult
-        .iter()
-        .map(|el| { el / Complex64::from(n as f64)})
-        .collect();
+    for i in 0..n {
+        ft[i] *= k_fac[i] / (n as f64);
+    }
 
-    let mut back_ft = fft(&n,Sign::Backward, &normalized).unwrap();
+    let mut psi_x = fftw.fft(Sign::Backward, &ft)?;
 
-    let step = back_ft
-        .iter()
-        .enumerate()
-        .map(|(idx, el)| {
-            let xpos = (idx as f64) * system_size / (n as f64);
-            let sinx = (q * xpos).sin();
-            el * Complex64::exp(-I * omega * deltat * (interaction_strength * el.norm()) + potential(&xpos, &q, &true, &true) )
-        })
-        .collect();
+    for (i, psi) in psi_x.iter_mut().enumerate() {
+        let xpos = system_size * 0.5 - (i as f64) * system_size / (n as f64);
+        let v = potential(&xpos, &q, &true, &true);
+        let interaction = interaction_strength * psi.norm_sqr();
+        let phase = -omega * deltat * (interaction + v);
+        *psi *= Complex64::new(0.0, phase).exp();
+    }
 
-    let transform_2 = fft(&n, Sign::Forward, &step).unwrap();
+    let mut ft2 = fftw.fft(Sign::Forward, &psi_x)?;
+    for i in 0..n {
+        ft2[i] *= k_fac[i] / (n as f64);
+    }
+    let psi_out = fftw.fft(Sign::Backward, &ft2)?;
 
-    // Normalize
-    let mult_2: Vec<Complex64> = transform_2.iter()
-        .zip(k_fac.iter())
-        .map(|(ft, k_fac)| {
-            ft * k_fac
-        })
-        .collect();
 
-    let normalized_2: Vec<Complex64> = mult_2
-        .iter()
-        .map(|el| { el / Complex64::from(n as f64)})
-        .collect();
+    let norm: f64 = psi_out.iter().map(|z| z.norm_sqr()).sum::<f64>().sqrt();
+    let psi_out: Vec<c64> = psi_out.iter().map(|z| z / norm).collect();
 
-    let out = fft(&n, Sign::Backward, &normalized_2).unwrap();
-
-    Ok(out)
+    Ok(psi_out)
 }
 
 /// Not sure, but I think I never used this.
 /// As stated in the thesis, It was just too slow.
-fn split_step_s7<'a>(system_size: &'a f64, deltat: &'a f64, omega: &'a f64, interaction_strength: &'a f64, data: &'a Vec<Complex64>) -> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
+fn split_step_s7<'a>(fftw:&'a mut FftHelper, system_size: &'a f64, deltat: &'a f64, omega: &'a f64, interaction_strength: &'a f64, data: &'a Vec<Complex64>) -> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
 
     //Bandrauk and Shen, J. Phys. A, 27:7147
-    const OMEGA: [f64; 4] = [1.3151861047504085, -1.1776799841887, 0.2355733213359357, 0.784513610477560];
-    let mut out = data.clone();
-    out = split_step_s3(&system_size, &deltat, &OMEGA[3], &interaction_strength, &out)?;
-    out = split_step_s3(&system_size, &deltat, &OMEGA[2], &interaction_strength, &out)?;
-    out = split_step_s3(&system_size, &deltat, &OMEGA[1], &interaction_strength, &out)?;
-    out = split_step_s3(&system_size, &deltat, &OMEGA[0], &interaction_strength, &out)?;
-    out = split_step_s3(&system_size, &deltat, &OMEGA[1], &interaction_strength, &out)?;
-    out = split_step_s3(&system_size, &deltat, &OMEGA[2], &interaction_strength, &out)?;
-    out = split_step_s3(&system_size, &deltat, &OMEGA[3], &interaction_strength, &out)?;
+    const S7_COEFFS: [f64; 7] = [
+        0.784513610477560,
+        0.2355733213359357,
+        -1.1776799841887,
+        1.3151861047504085,
+        -1.1776799841887,
+        0.2355733213359357,
+        0.784513610477560,
+    ];
 
-    Ok(out)
+    let mut psi = data.to_vec();
+
+    for &c in S7_COEFFS.iter(){
+        let sub_dt = deltat * c;
+        psi = split_step_s3(fftw, &system_size, &sub_dt, &omega, &interaction_strength, &psi)?;
+    }
+
+    Ok(psi)
 }
 
 
