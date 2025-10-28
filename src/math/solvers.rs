@@ -1,4 +1,7 @@
+use std::error::Error;
 use lapack::*;
+use num::complex::Complex64;
+use crate::math::calculus::{FftHelper, split_step_s3, split_step_s7};
 use super::*;
 
 pub fn symmetric_eigensolver(config: &EigenConfig, hamiltonian: &Vec<f64>) -> Result<(Vec<f64>, Vec<f64>), String> {
@@ -58,6 +61,30 @@ pub fn tridiag_eigensolver(config: &EigenConfig, mut diag: Vec<f64>, mut offdiag
 
     Err(format!("Algorithm failed: info is {}, please consult https://www.netlib.org/lapack/explore-html/db/daa/group__stev_ga774cb10a577ccdd97546ef1c5599f8ee.html#ga774cb10a577ccdd97546ef1c5599f8ee", info))
 }
+
+pub enum SplitStepAlgorithm{
+    S3,
+    S7
+}
+
+pub fn split_step_solver(n: usize, system_size: f64, omega: f64, dt: f64,  g: f64, alg:  SplitStepAlgorithm, data: &[Complex64]) -> Result<Vec<Complex64>, Box<dyn Error>>{
+
+    let out = match alg {
+        SplitStepAlgorithm::S3 => {
+            let mut fft = FftHelper::new(n)?;
+            split_step_s3(&mut fft, &system_size, &dt, &omega, &g, data)?
+        },
+        SplitStepAlgorithm::S7 => {
+            let mut fft = FftHelper::new(n)?;
+            split_step_s7(&mut fft, &system_size, &dt, &omega, &g, data)?
+        }
+    };
+
+    Ok(out)
+}
+
+
+
 
 #[cfg(test)]
 mod tests {
