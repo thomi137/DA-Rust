@@ -1,5 +1,6 @@
 
  use num::pow;
+ use crate::GlobalConfig;
  use crate::math::{EigenConfig};
 
  pub const PI: f64 = std::f64::consts::PI;
@@ -13,11 +14,11 @@ pub struct Hamiltonian {
     pub lattice: bool,
 }
 impl Hamiltonian {
-    pub fn new(config: &EigenConfig, interaction_strength: f64, trap: bool, lattice: bool) -> Hamiltonian {
+    pub fn new(config: &GlobalConfig, interaction_strength: f64, trap: bool, lattice: bool) -> Hamiltonian {
         let config = config.clone();
-        let num_steps = config.n as usize;
+        let num_steps = config.step_num as usize;
         let fnum_steps= num_steps as f64;
-        let system_width = config.system_width;
+        let system_width = config.clone().system_size;
         let operator = init_operator(&num_steps, &system_width, &fnum_steps, &interaction_strength, &trap, &lattice, |row, col| {
             let step_size = system_width / fnum_steps;
             if row == col {
@@ -54,10 +55,10 @@ pub struct TridiagHamiltonian {
     pub lattice: bool,
 }
 impl TridiagHamiltonian {
-    pub fn new(config: &EigenConfig, interaction_strength: f64, trap: bool, lattice: bool) -> TridiagHamiltonian {
+    pub fn new(config: &GlobalConfig, interaction_strength: f64, trap: bool, lattice: bool) -> TridiagHamiltonian {
         let config = config.clone();
-        let n = config.n as usize;
-        let system_width = config.system_width;
+        let n = config.step_num;
+        let system_width = config.system_size;
         let fnum_steps= n as f64;
         let step_size = system_width / fnum_steps;
 

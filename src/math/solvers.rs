@@ -1,12 +1,18 @@
-use std::error::Error;
+use std::any::Any;
 use lapack::*;
 use num::complex::Complex64;
+use serde::{Serialize, Deserialize};
+
+use crate::cli::{Cli};
+use crate::{AlgorithmConfig, ConfigBuilder, GlobalConfig};
 use crate::math::calculus::{FftHelper, split_step_s3, split_step_s7};
 use super::*;
 
+use linalg::*;
+
 pub fn symmetric_eigensolver(config: &EigenConfig, hamiltonian: &Vec<f64>) -> Result<(Vec<f64>, Vec<f64>), String> {
     let cfg = config.clone();
-    let rng = cfg.n.clone() as usize;
+    let rng = cfg.lda.clone() as usize;
     let lwork = cfg.lwork.clone();
     let mut matrix = hamiltonian.clone();
     let mut w = vec![0.0; rng];
@@ -14,7 +20,7 @@ pub fn symmetric_eigensolver(config: &EigenConfig, hamiltonian: &Vec<f64>) -> Re
     let mut info = 2939;
 
     unsafe {
-        dsyev(cfg.jobz, cfg.uplo, cfg.n, &mut matrix, cfg.lda, &mut w, &mut work, lwork, &mut info);
+        dsyev(cfg.jobz, cfg.uplo, cfg.lda, &mut matrix, cfg.lda, &mut w, &mut work, lwork, &mut info);
     }
 
     if info == 0 {
@@ -30,10 +36,10 @@ pub fn tridiag_eigensolver(config: &EigenConfig, mut diag: Vec<f64>, mut offdiag
     let jobz = config.jobz;
 
     let compute_vectors = jobz == b'V';
-    let mut z = if jobz == b'V' {
-        vec![0.0f64; (n.clone() * n.clone()) as usize]
-    } else {
-        vec![0.0f64; 1]
+    let mut z = match jobz {
+        b'V' => vec![0.0f64; (n.clone() * n.clone()) as usize],
+        b'N' => vec![0.0f64; 1],
+        _ => panic!("Error")
     };
 
     let ldz = if compute_vectors { n.clone() } else { 1 };
@@ -66,8 +72,8 @@ pub enum SplitStepAlgorithm{
     S3,
     S7
 }
-
-pub fn split_step_solver(n: usize, system_size: f64, omega: f64, dt: f64,  g: f64, alg:  SplitStepAlgorithm, data: &[Complex64]) -> Result<Vec<Complex64>, Box<dyn Error>>{
+/*
+pub fn split_step_solver(n: usize, system_size: f64, omega: f64, dt: f64,  g: f64, alg:  SplitStepAlgorithm, data: &[Complex64]) -> Result<Vec<Complex64>, String>{
 
     let out = match alg {
         SplitStepAlgorithm::S3 => {
@@ -80,19 +86,72 @@ pub fn split_step_solver(n: usize, system_size: f64, omega: f64, dt: f64,  g: f6
         }
     };
 
-    Ok(out)
+    Ok(vec![])
+}
+*/
+
+pub enum Solver {
+    Eigen(
+        fn(&EigenConfig, Vec<f64>, Vec<f64>) -> Result<(Vec<f64>, Vec<f64>), String>,
+        EigenConfig,
+    ),
+    SplitStep(
+        fn(&SplConfig, Vec<f64>) -> Result<Vec<f64>, String>,
+        SplConfig,
+    ),
 }
 
+impl Solver {
+    pub fn run(
+        &self,
+        diag: Option<Vec<f64>>,
+        offdiag: Option<Vec<f64>>,
+        field: Option<Vec<f64>>,
+    ) -> Result<(), String> {
+        match self {
+            Solver::Eigen(f, cfg) => {
+                let diag = diag.unwrap_or_default();
+                let offdiag = offdiag.unwrap_or_default();
+                let (vals, vecs) = f(cfg, diag, offdiag)?;
+                println!("Eigenvalues: {:?}\nEigenvectors: {:?}", vals, vecs);
+            }
+            Solver::SplitStep(f, cfg) => {
+                let field = field.unwrap_or_default();
+                let out = f(cfg, field)?;
+                println!("Field result: {:?}", out);
+            }
+        }
+        Ok(())
+    }
+}
+
+pub fn build_solver(config: AlgorithmConfig) -> Result<Solver, String> {
+
+    match config {
+
+        AlgorithmConfig::Eig(conf) => Ok(Solver::Eigen(tridiag_eigensolver, conf)),
+/*        "spl" => {
+            let config = SplConfig {
+                dt: cli.dt,
+                omega: cli.omega,
+            }
+                .build(globals);
+            Ok(Solver::SplitStep(split_step_solver, config))
+        },*/
+        _ => Err(format!("Unknown Algorithm."))
+
+    }
+}
 
 
 
 #[cfg(test)]
 mod tests {
-    use crate::math::{EigenConfig, solvers};
+    use crate::math::{EigensolverConfig, solvers};
 
     #[test]
     fn eigensolver_test() {
-        let config = EigenConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigensolverConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let hamiltonian = vec![3.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 3.0];
 
         let res = solvers::symmetric_eigensolver(&config, &hamiltonian).unwrap();
@@ -108,7 +167,7 @@ mod tests {
 
     #[test]
     fn eigenvector_eigensolver_test() {
-        let config = EigenConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigensolverConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let hamiltonian = vec![3.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 3.0];
 
         let res = solvers::symmetric_eigensolver(&config, &hamiltonian).unwrap();
@@ -119,7 +178,7 @@ mod tests {
 
     #[test]
     fn only_eigenvalues_eigensolver_test() {
-        let config = EigenConfig { jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigensolverConfig { jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let hamiltonian = vec![3.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 3.0];
 
         let res = solvers::symmetric_eigensolver(&config, &hamiltonian).unwrap();
@@ -136,7 +195,7 @@ mod tests {
     #[test]
     fn tridiag_eigensolver_test() {
         let epsilon = 1e-2f64;
-        let config = EigenConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigensolverConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let diag: Vec<f64> = (1..=5).map(|x| { x as f64 }).collect();
         let offdiag: Vec<f64> = vec![2.0; 4];
         let res = solvers::tridiag_eigensolver(&config, diag, offdiag).unwrap();
@@ -152,7 +211,7 @@ mod tests {
 
     #[test]
     fn tridiag_eigensolver_test_only_eigenvalues() {
-        let config = EigenConfig { jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigensolverConfig { jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let diag: Vec<f64> = (1..=5).map(|x| { x as f64 }).collect();
         let offdiag: Vec<f64> = vec![2.0; 4];
         let res = solvers::tridiag_eigensolver(&config, diag, offdiag).unwrap();

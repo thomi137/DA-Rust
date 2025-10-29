@@ -3,21 +3,42 @@ use plotters::coord::Shift;
 
 use spinoff::{Spinner, spinners, Color};
 
-use bec_rust::{
-    math::{
-        EigenConfig,
-        Jobz,
-        Uplo,
-        solvers::tridiag_eigensolver},
-};
+use bec_rust::{build_algorithm_config, math::{
+    Jobz,
+    Uplo,
+    solvers::tridiag_eigensolver}};
 use clap::Parser;
 use bec_rust::cli::*;
+use bec_rust::math::build_solver;
 use bec_rust::physics::TridiagHamiltonian;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
-    let args = Cli::parse();
+    let cli = Cli::parse();
 
+    let globals = GlobalConfig { ..cli.global.clone() };
+    let algorithm = build_algorithm_config(&cli, &globals);
+
+    let run_config = FullConfig{
+        global: &globals,
+        algorithm: &algorithm
+    };
+
+    let json = serde_json::to_string_pretty(&run_config).unwrap();
+    println!("Run configuration:\n{}", json);
+
+/*    let sim_config = if let Some(cfg_file) = &cli.config {
+        parse_config_file(cfg_file)
+    } else {
+        let globals = GlobalConfig { ..cli.global.clone() };
+        let alg_config = build_algorithm_config(&cli);
+        SimulationConfig {
+            global: globals,
+            algorithm: alg_config,
+        }
+    };*/
+
+    /*
     let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
     let config = EigenConfig::init(
         args.mode as Jobz,
@@ -121,6 +142,6 @@ fn draw_chart<DB: DrawingBackend>(root: &DrawingArea<DB, Shift>, data: &Vec<(f64
     chart.draw_series(LineSeries::new(
         data.iter().cloned(),
         &BLUE, )).expect("TODO: panic message");
-
+ */
     Ok(())
 }

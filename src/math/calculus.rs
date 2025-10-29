@@ -4,10 +4,31 @@ use fftw::plan::{C2CPlan, C2CPlan64};
 use fftw::types::{c64, Flag, Sign};
 use num::{Complex};
 use num::complex::{Complex64};
+
+use clap::*;
+use serde::{Deserialize, Serialize};
+
+
 use crate::physics::{PI, potential};
+use crate::{GlobalConfig, ConfigBuilder};
 
 const TWO_PI: f64 = 2.0 * PI;
 const I: Complex64 = Complex::I;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SplConfig {
+    pub dt: f64,
+    pub omega: f64,
+}
+
+impl ConfigBuilder for SplConfig {
+    type Output = SplConfig;
+
+    fn build(&self, globals: &GlobalConfig) -> Self::Output {
+        todo!()
+    }
+}
+
 
 pub struct FftHelper {
     plan_fwd: C2CPlan64,
@@ -200,6 +221,4 @@ mod tests {
 
         //  assert_eq!(out[0], c64::new(1f64, 0f64));
     }
-
-
 }

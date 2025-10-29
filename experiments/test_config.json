@@ -1,0 +1,18 @@
+{
+  "global": {
+    "output": null,
+    "format": null,
+    "step_num": 1024,
+    "system_size": 10.0,
+    "interaction_strength": 0.0,
+    "trap": false,
+    "lattice": false
+  },
+  "algorithm": {
+    "alg": "eig",
+    "jobz": 86,
+    "uplo": 76,
+    "lda": 1024,
+    "lwork": 3071
+  }
+}
