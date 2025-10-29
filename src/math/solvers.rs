@@ -1,10 +1,6 @@
-use std::any::Any;
 use lapack::*;
-use num::complex::Complex64;
-use serde::{Serialize, Deserialize};
 
-use crate::cli::{Cli};
-use crate::{AlgorithmConfig, ConfigBuilder, GlobalConfig};
+use crate::{AlgorithmConfig};
 use crate::math::calculus::{FftHelper, split_step_s3, split_step_s7};
 use super::*;
 
@@ -106,22 +102,22 @@ impl Solver {
         &self,
         diag: Option<Vec<f64>>,
         offdiag: Option<Vec<f64>>,
-        field: Option<Vec<f64>>,
-    ) -> Result<(), String> {
+    ) -> Result<(Vec<f64>, Vec<f64>), String> {
         match self {
             Solver::Eigen(f, cfg) => {
-                let diag = diag.unwrap_or_default();
-                let offdiag = offdiag.unwrap_or_default();
-                let (vals, vecs) = f(cfg, diag, offdiag)?;
-                println!("Eigenvalues: {:?}\nEigenvectors: {:?}", vals, vecs);
+                let diag = diag.unwrap();
+                let offdiag = offdiag.unwrap();
+                let res =f(cfg, diag, offdiag)?;
+                return Ok(res)
             }
+            /*
             Solver::SplitStep(f, cfg) => {
-                let field = field.unwrap_or_default();
                 let out = f(cfg, field)?;
                 println!("Field result: {:?}", out);
-            }
+            }*/
+            _ => return Err("There was an error".to_string())
         }
-        Ok(())
+        Err("Failed".to_string())
     }
 }
 

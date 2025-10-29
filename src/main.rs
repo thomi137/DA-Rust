@@ -3,10 +3,7 @@ use plotters::coord::Shift;
 
 use spinoff::{Spinner, spinners, Color};
 
-use bec_rust::{build_algorithm_config, math::{
-    Jobz,
-    Uplo,
-    solvers::tridiag_eigensolver}};
+use bec_rust::{build_algorithm_config};
 use clap::Parser;
 use bec_rust::cli::*;
 use bec_rust::math::build_solver;
@@ -20,39 +17,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let algorithm = build_algorithm_config(&cli, &globals);
 
     let run_config = FullConfig{
-        global: &globals,
-        algorithm: &algorithm
+        global: &globals.clone(),
+        algorithm: &algorithm.clone()
     };
 
-    let json = serde_json::to_string_pretty(&run_config).unwrap();
-    println!("Run configuration:\n{}", json);
+    let toml_str = toml::to_string_pretty(&run_config).unwrap();
+    println!("{}", toml_str);
 
-/*    let sim_config = if let Some(cfg_file) = &cli.config {
-        parse_config_file(cfg_file)
-    } else {
-        let globals = GlobalConfig { ..cli.global.clone() };
-        let alg_config = build_algorithm_config(&cli);
-        SimulationConfig {
-            global: globals,
-            algorithm: alg_config,
-        }
-    };*/
+    let solver = build_solver(algorithm).unwrap();
 
-    /*
     let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
-    let config = EigenConfig::init(
-        args.mode as Jobz,
-        Uplo::LowerTriangle,
-        args.step_num,
-        args.system_size
-    );
-
-    //let hamiltonian = Hamiltonian::new(&config,0.1,true, true);
-    // let result = symmetric_eigensolver(&config, &hamiltonian.operator);
 
     sp.update_text("Eigenvalue/Vector calculation");
-    let hamiltonian = TridiagHamiltonian::new(&config,0.1,args.trap, args.lattice);
-    let result = tridiag_eigensolver(&config, hamiltonian.vectors.diag, hamiltonian.vectors.offdiag );
+    let hamiltonian = TridiagHamiltonian::new(&run_config.global);
+
+    let result = solver.run(hamiltonian.vectors.diag, hamiltonian.vectors.offdiag);
+
 
     let eigenvectors = match result {
         Ok(result) => {
@@ -65,62 +45,66 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    if let Some(output) = args.output {
-
-        let filename: String = output;
-
-        // Just to make very sure.
-        let format: String = args.format.unwrap_or("png".to_string());
-
-        let plotvec: Vec<(f64, f64)> = eigenvectors[0..args.step_num]
-            .iter()
-            .enumerate()
-            .map(|(idx, val)| {
-                let xpos =  (args.system_size * 0.5) - ((idx as f64) * args.system_size)/(args.step_num as f64);
-                (xpos, val.abs())
-            })
-            .collect();
-
-        sp.update_text("Starting plot");
-        make_plot(&format, &filename, &plotvec).expect("TODO: panic message");
-    }
-
-
-
-       // .label("y = x^2")
-       // .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
-
-    //chart
-    //    .configure_series_labels()
-    //    .background_style(&WHITE.mix(0.8))
-    //    .border_style(&BLACK)
-    //    .draw()?;
+    println!("{}", eigenvectors.len());
 
     sp.success("Done 😃");
-    Ok(())
+/*
+
+if let Some(output) = globals.output {
+
+    let filename: String = output;
+
+    // Just to make very sure.
+    let format: String = globals.format.unwrap_or("png".to_string());
+
+    let plotvec: Vec<(f64, f64)> = eigenvectors[0..globals.step_num]
+        .iter()
+        .enumerate()
+        .map(|(idx, val)| {
+            let xpos =  (globals.system_size * 0.5) - ((idx as f64) * globals.system_size)/(globals.step_num as f64);
+            (xpos, val.abs())
+        })
+        .collect();
+
+    sp.update_text("Starting plot");
+    make_plot(&format, &filename, &plotvec).expect("TODO: panic message");
+}
+
+
+
+   // .label("y = x^2")
+   // .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
+
+//chart
+//    .configure_series_labels()
+//    .background_style(&WHITE.mix(0.8))
+//    .border_style(&BLACK)
+//    .draw()?;
+
+Ok(())
 }
 
 fn make_plot(format: &str, filename: &str, plotvec: &Vec<(f64, f64)>) -> Result<(), Box<dyn std::error::Error>> {
 
-    let path = format!("./plots/{}.{}", filename, format);
+let path = format!("./plots/{}.{}", filename, format);
 
-    match format {
-        "png" => {
-            let root = BitMapBackend::new(&path,(800, 600) ).into_drawing_area();
-            let _ = draw_chart(&root, &plotvec);
-            root.present()?;
-        },
-        "svg" => {
-            let root = SVGBackend::new(&path,(800, 600) ).into_drawing_area();
-            let _ = draw_chart(&root, &plotvec);
-            root.present()?;
-        },
-        other =>  {
-            eprintln!("Unsupported format: {}. Use png or svg.", other);
-            std::process::exit(1);
-        }
+match format {
+    "png" => {
+        let root = BitMapBackend::new(&path,(800, 600) ).into_drawing_area();
+        let _ = draw_chart(&root, &plotvec);
+        root.present()?;
+    },
+    "svg" => {
+        let root = SVGBackend::new(&path,(800, 600) ).into_drawing_area();
+        let _ = draw_chart(&root, &plotvec);
+        root.present()?;
+    },
+    other =>  {
+        eprintln!("Unsupported format: {}. Use png or svg.", other);
+        std::process::exit(1);
     }
-
+}
+*/
     Ok(())
 }
 
@@ -142,6 +126,5 @@ fn draw_chart<DB: DrawingBackend>(root: &DrawingArea<DB, Shift>, data: &Vec<(f64
     chart.draw_series(LineSeries::new(
         data.iter().cloned(),
         &BLUE, )).expect("TODO: panic message");
- */
     Ok(())
 }

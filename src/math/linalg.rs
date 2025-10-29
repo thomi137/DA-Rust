@@ -1,11 +1,15 @@
 use clap::*;
 use serde::{Serialize, Deserialize};
+
 use crate::{ConfigBuilder, GlobalConfig};
+use crate::serde_ascii;
+
 
 /// Linear Algebra used.
 /// at the moment, the eigenvalues and eigenvectors of a tridiagonal Matrix are used,
 /// so we will use LAPACK's dsyev
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Jobz {
     #[value(name="values")]
     EigenValuesOnly,
@@ -22,6 +26,7 @@ impl Jobz{
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")] // ensures TOML/JSON use same naming as CLI
 pub enum Uplo {
     UpperTriangle,
     LowerTriangle
@@ -60,7 +65,9 @@ impl ConfigBuilder for LapackConfig {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EigenConfig {
+    #[serde(with = "serde_ascii")]
     pub jobz: u8,
+    #[serde(with = "serde_ascii")]
     pub uplo: u8,
     pub lda: i32,
     pub lwork: i32

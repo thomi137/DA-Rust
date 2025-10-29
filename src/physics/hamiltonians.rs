@@ -1,7 +1,5 @@
-
  use num::pow;
  use crate::GlobalConfig;
- use crate::math::{EigenConfig};
 
  pub const PI: f64 = std::f64::consts::PI;
  pub const FRAC_ROOT_TWO_PI: f64 = 0.398942280401432677939946059934381868_f64;
@@ -43,8 +41,8 @@ impl Hamiltonian {
 
 #[derive(Clone, Debug)]
 pub struct TridiagOperator {
-    pub diag: Vec<f64>,
-    pub offdiag: Vec<f64>,
+    pub diag: Option<Vec<f64>>,
+    pub offdiag: Option<Vec<f64>>,
 }
 
 #[derive(Clone, Debug)]
@@ -55,14 +53,17 @@ pub struct TridiagHamiltonian {
     pub lattice: bool,
 }
 impl TridiagHamiltonian {
-    pub fn new(config: &GlobalConfig, interaction_strength: f64, trap: bool, lattice: bool) -> TridiagHamiltonian {
+    pub fn new(config: &GlobalConfig) -> TridiagHamiltonian {
         let config = config.clone();
         let n = config.step_num;
         let system_width = config.system_size;
+        let interaction_strength = config.interaction_strength;
+        let trap = config.trap;
+        let lattice = config.lattice;
         let fnum_steps= n as f64;
         let step_size = system_width / fnum_steps;
 
-        let d = vec![0.0; n]
+        let d: Vec<f64> = vec![0.0; n]
             .iter()
             .enumerate()
             .map(|(idx, _)| {
@@ -70,18 +71,21 @@ impl TridiagHamiltonian {
                 let xpos = position(&idx, &system_width, &fnum_steps);
                 1./(&step_size * &step_size)
                     + interaction_strength.clone() * pow(FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.), 2)
-                    + potential(&xpos, &wave_number, &lattice, &trap)
+                    + potential(&xpos, &wave_number, &trap, &lattice)
 
             })
             .collect();
 
-        let e = vec![0.0; &n-1]
+        let e:Vec<f64> = vec![0.0; &n-1]
             .iter()
             .map(|_|{
                 -0.5 * 1./(pow(step_size, 2))
             }).collect();
 
-        let vectors = TridiagOperator{diag: d, offdiag: e };
+        let diag = if d.is_empty() { None } else { Some(d)};
+        let offdiag = if e.is_empty() { None } else { Some(e)};
+
+        let vectors = TridiagOperator{diag, offdiag };
 
         TridiagHamiltonian{ vectors, interaction_strength, trap, lattice}
     }

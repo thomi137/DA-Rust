@@ -5,7 +5,6 @@ use fftw::types::{c64, Flag, Sign};
 use num::{Complex};
 use num::complex::{Complex64};
 
-use clap::*;
 use serde::{Deserialize, Serialize};
 
 

@@ -1,7 +1,7 @@
 use clap::{arg, Parser};
 use serde::{Serialize, Deserialize};
 
-use crate::math::{EigenConfig, SplConfig, Jobz, Uplo, LapackConfig};
+use crate::math::{EigenConfig, SplConfig, Jobz, Uplo};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -67,7 +67,7 @@ pub struct GlobalConfig {
 
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "alg", rename_all = "lowercase")]
 pub enum AlgorithmConfig {
     Eig(EigenConfig),
