@@ -1,0 +1,12 @@
+[global]
+system_size = 10.0
+interaction_strength = 0.0
+trap = true
+lattice = true
+
+[algorithm]
+alg = "eig"
+jobz = "V"
+uplo = "U"
+lda = 1024
+lwork = 3071

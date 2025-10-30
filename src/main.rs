@@ -3,7 +3,7 @@ use plotters::coord::Shift;
 
 use spinoff::{Spinner, spinners, Color};
 
-use bec_rust::{build_algorithm_config};
+use bec_rust::{build_algorithm_config, load_config_from_file, merge_algorithm, merge_globals, save_config_to_file};
 use clap::Parser;
 use bec_rust::cli::*;
 use bec_rust::math::build_solver;
@@ -13,18 +13,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cli = Cli::parse();
 
+    let mut file_globals: Option<GlobalConfig> = None;
+    let mut file_alg: Option<AlgorithmConfig> = None;
+
+    if let Some(ref path) = cli.config {
+        let file_config = load_config_from_file(&path)?;
+        file_globals = Some(file_config.global);
+        file_alg = Some(file_config.algorithm);
+    }
     let globals = GlobalConfig { ..cli.global.clone() };
-    let algorithm = build_algorithm_config(&cli, &globals);
 
     let run_config = FullConfig{
-        global: &globals.clone(),
-        algorithm: &algorithm.clone()
+        global: merge_globals(&globals, file_globals),
+        algorithm: merge_algorithm(&cli, file_alg, &globals)
     };
 
-    let toml_str = toml::to_string_pretty(&run_config).unwrap();
-    println!("{}", toml_str);
-
-    let solver = build_solver(algorithm).unwrap();
+    let solver = build_solver(run_config.algorithm).unwrap();
 
     let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
 
@@ -48,6 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", eigenvectors.len());
 
     sp.success("Done 😃");
+
 /*
 
 if let Some(output) = globals.output {
