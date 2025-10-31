@@ -1,6 +1,8 @@
+use std::error::Error;
 use lapack::*;
+use num::complex::Complex64;
 
-use crate::{AlgorithmConfig};
+use crate::{AlgorithmConfig, GlobalConfig};
 use crate::math::calculus::{FftHelper, split_step_s3, split_step_s7};
 use super::*;
 
@@ -68,23 +70,11 @@ pub enum SplitStepAlgorithm{
     S3,
     S7
 }
-/*
-pub fn split_step_solver(n: usize, system_size: f64, omega: f64, dt: f64,  g: f64, alg:  SplitStepAlgorithm, data: &[Complex64]) -> Result<Vec<Complex64>, String>{
 
-    let out = match alg {
-        SplitStepAlgorithm::S3 => {
-            let mut fft = FftHelper::new(n)?;
-            split_step_s3(&mut fft, &system_size, &dt, &omega, &g, data)?
-        },
-        SplitStepAlgorithm::S7 => {
-            let mut fft = FftHelper::new(n)?;
-            split_step_s7(&mut fft, &system_size, &dt, &omega, &g, data)?
-        }
-    };
-
-    Ok(vec![])
+pub enum SolverResult {
+    Eigen(Vec<f64>, Vec<f64>),
+    SplitStep(Vec<Complex64>),
 }
-*/
 
 pub enum Solver {
     Eigen(
@@ -92,50 +82,51 @@ pub enum Solver {
         EigenConfig,
     ),
     SplitStep(
-        fn(&SplConfig, Vec<f64>) -> Result<Vec<f64>, String>,
+        fn( &mut FftHelper,
+            &GlobalConfig,
+            &SplConfig,
+            &[Complex64],) -> Result<Vec<Complex64>,  Box<dyn Error>>,
         SplConfig,
     ),
 }
 
 impl Solver {
-    pub fn run(
-        &self,
-        diag: Option<Vec<f64>>,
-        offdiag: Option<Vec<f64>>,
-    ) -> Result<(Vec<f64>, Vec<f64>), String> {
+    pub fn run(&self,
+               globals: &GlobalConfig,
+               diag: Option<Vec<f64>>,
+               offdiag: Option<Vec<f64>>,
+               psi: Option<Vec<Complex64>>,
+    ) -> Result<SolverResult, String> {
         match self {
             Solver::Eigen(f, cfg) => {
                 let diag = diag.unwrap();
                 let offdiag = offdiag.unwrap();
-                let res =f(cfg, diag, offdiag)?;
-                return Ok(res)
-            }
-            /*
+                let slv = f(cfg, diag, offdiag)?;
+                return Ok(SolverResult::Eigen(slv.0, slv.1))
+            },
+
             Solver::SplitStep(f, cfg) => {
-                let out = f(cfg, field)?;
-                println!("Field result: {:?}", out);
-            }*/
-            _ => return Err("There was an error".to_string())
+                let mut fftw = FftHelper::new(globals.step_num)
+                    .map_err(|e| format!("FFTW init failed: {}", e))?;
+                let psi = psi.ok_or("Initial psi missing")?;
+                let psi_out = f(&mut fftw, globals, cfg, &psi)
+                    .map_err(|e| format!("Split-step solver failed: {}", e))?;
+
+                Ok(SolverResult::SplitStep(psi_out))
+            }
         }
-        Err("Failed".to_string())
     }
 }
 
-pub fn build_solver(config: AlgorithmConfig) -> Result<Solver, String> {
+pub fn build_solver(
+    alg_config: AlgorithmConfig
+) -> Result<Solver, String> {
 
-    match config {
-
-        AlgorithmConfig::Eig(conf) => Ok(Solver::Eigen(tridiag_eigensolver, conf)),
-/*        "spl" => {
-            let config = SplConfig {
-                dt: cli.dt,
-                omega: cli.omega,
-            }
-                .build(globals);
-            Ok(Solver::SplitStep(split_step_solver, config))
-        },*/
-        _ => Err(format!("Unknown Algorithm."))
-
+    match alg_config {
+        AlgorithmConfig::Eig(config) => Ok(Solver::Eigen(tridiag_eigensolver, config)),
+        AlgorithmConfig::Spl(config) =>{
+            Ok(Solver::SplitStep(split_step_s3, config))
+        } ,
     }
 }
 

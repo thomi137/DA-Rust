@@ -2,18 +2,18 @@ use clap::*;
 use serde::{Serialize, Deserialize};
 
 use crate::{ConfigBuilder, GlobalConfig};
-use crate::serde_ascii;
-
 
 /// Linear Algebra used.
 /// at the moment, the eigenvalues and eigenvectors of a tridiagonal Matrix are used,
 /// so we will use LAPACK's dsyev
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum Jobz {
-    #[value(name="values")]
+    #[clap(name="values")]
+    #[serde(rename = "values")]
     EigenValuesOnly,
-     #[value(name="vectors")]
+
+    #[clap(name="vectors")]
+    #[serde(rename = "vectors")]
     WithEigenvectors
 }
 impl Jobz{
@@ -23,12 +23,24 @@ impl Jobz{
             Jobz::WithEigenvectors => b'V',
         }
     }
+
+    pub fn map_jobz(byte: u8) -> Jobz{
+        match byte {
+            b'N' => Jobz::EigenValuesOnly,
+            b'V' => Jobz::WithEigenvectors,
+            _ => Jobz::WithEigenvectors
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")] // ensures TOML/JSON use same naming as CLI
 pub enum Uplo {
+    #[clap(name="upper")]
+    #[serde(rename = "upper")]
     UpperTriangle,
+
+    #[clap(name="lower")]
+    #[serde(rename = "lower")]
     LowerTriangle
 }
 impl Uplo {
@@ -36,6 +48,14 @@ impl Uplo {
         match self {
             Uplo::UpperTriangle => b'U',
             Uplo::LowerTriangle => b'L',
+        }
+    }
+
+    pub fn map_uplo(byte: u8) -> Uplo {
+        match byte {
+            b'U' => Uplo::UpperTriangle,
+            b'L' => Uplo::LowerTriangle,
+            _ => Uplo::UpperTriangle
         }
     }
 }
@@ -65,15 +85,11 @@ impl ConfigBuilder for LapackConfig {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EigenConfig {
-    #[serde(with = "serde_ascii")]
     pub jobz: u8,
-    #[serde(with = "serde_ascii")]
     pub uplo: u8,
     pub lda: i32,
     pub lwork: i32
 }
-
-
 
 #[cfg(test)]
 mod tests {

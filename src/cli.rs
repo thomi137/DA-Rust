@@ -1,4 +1,4 @@
-use clap::{arg, Parser};
+use clap::{arg, Args, Parser, Subcommand};
 use serde::{Serialize, Deserialize};
 
 use crate::math::{EigenConfig, SplConfig, Jobz, Uplo};
@@ -17,20 +17,9 @@ pub struct Cli {
     #[command(flatten)]
     pub global: GlobalConfig,
 
-    #[arg(long, value_parser = ["eig", "spl"])]
-    pub alg: String,
+    #[command(subcommand)]
+    pub alg: AlgorithmSubcommand,
 
-    #[arg(long, value_enum, required_if_eq("alg", "eig"), default_value_t = Jobz::WithEigenvectors)]
-    pub mode: Jobz,
-
-    #[arg(long, value_enum, required_if_eq("alg", "eig"), default_value_t = Uplo::UpperTriangle)]
-    pub symmetry: Uplo,
-
-    #[arg(long, default_value_t = 0.1, required_if_eq("alg", "spl"))]
-    pub dt: f64,
-
-    #[arg(long, default_value_t = 1.0, required_if_eq("alg", "spl"))]
-    pub omega: f64,
 }
 
 /// Learned from ChatGPT Seems Serde does not look at Clap
@@ -73,6 +62,36 @@ pub struct GlobalConfig {
     #[arg(short, long, default_value_t=false)]
     pub lattice: bool,
 
+}
+
+#[derive(Subcommand, Debug, Serialize, Deserialize)]
+pub enum AlgorithmSubcommand {
+    Eig(EigenConfigArgs),
+    Spl(SplConfigArgs),
+}
+
+#[derive(Args, Debug, Serialize, Deserialize)]
+pub struct EigenConfigArgs {
+
+    #[arg(long, value_enum, required_if_eq("alg", "eig"), default_value_t = Jobz::WithEigenvectors)]
+    pub mode: Jobz,
+
+    #[arg(long, value_enum, required_if_eq("alg", "eig"), default_value_t = Uplo::UpperTriangle)]
+    pub symmetry: Uplo,
+
+}
+
+#[derive(Args, Debug, Serialize, Deserialize)]
+pub struct SplConfigArgs {
+
+    #[arg(long, default_value_t = 0.1, required_if_eq("alg", "spl"))]
+    pub dt: f64,
+
+    #[arg(long, default_value_t = 1.0, required_if_eq("alg", "spl"))]
+    pub omega: f64,
+
+    #[arg(long, required_if_eq("alg", "spl"))]
+    pub imag_time: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

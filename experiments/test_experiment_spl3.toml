@@ -1,0 +1,12 @@
+[global]
+step_num = 1024
+system_size = 10.0
+interaction_strength = 0.0
+trap = false
+lattice = false
+
+[algorithm]
+alg = "spl"
+dt = 0.01
+omega = 1.0
+imag_time = false

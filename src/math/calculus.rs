@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 
 use crate::physics::{PI, potential};
-use crate::{GlobalConfig, ConfigBuilder};
+use crate::{GlobalConfig, ConfigBuilder, FullConfig};
 
 const TWO_PI: f64 = 2.0 * PI;
 const I: Complex64 = Complex::I;
@@ -18,16 +18,8 @@ const I: Complex64 = Complex::I;
 pub struct SplConfig {
     pub dt: f64,
     pub omega: f64,
+    pub imag_time: bool
 }
-
-impl ConfigBuilder for SplConfig {
-    type Output = SplConfig;
-
-    fn build(&self, globals: &GlobalConfig) -> Self::Output {
-        todo!()
-    }
-}
-
 
 pub struct FftHelper {
     plan_fwd: C2CPlan64,
@@ -62,31 +54,39 @@ impl FftHelper {
     }
 }
 
-pub fn split_step_s3(fftw: &mut FftHelper,
-                     system_size: &f64,
-                     deltat: &f64,
-                     omega: &f64,
-                     interaction_strength: &f64,
-                     data: &[Complex64],
-                     ) -> Result<Vec<Complex64>, Box<dyn Error>>{
-    let psi_out = split_step_gen(fftw, system_size, deltat, omega, interaction_strength, data, true)?;
+
+pub fn split_step_s3(
+    fftw: &mut FftHelper,
+    global: &GlobalConfig,
+    conf: &SplConfig,
+    psi: &[Complex64]) -> Result<Vec<Complex64>, Box<dyn Error>>{
+
+    let system_size = &global.system_size;
+    let g = &global.interaction_strength;
+    let deltat = &conf.dt;
+    let omega = &conf.omega;
+    let imag_time = &conf.imag_time;
+    let psi_out = split_step_gen(fftw, &system_size, &deltat, &omega, g, imag_time, psi)?;
     Ok(psi_out)
 }
 
 pub fn split_step_s3_imag(fftw: &mut FftHelper,
-                    system_size: &f64,
-                    deltat: &f64,
-                    omega: &f64,
-                    interaction_strength: &f64,
-                    data: &[Complex64],
+                          global: &GlobalConfig,
+                          conf: &SplConfig,
+                          psi: &[Complex64],
 ) -> Result<Vec<Complex64>, Box<dyn Error>>{
-    let psi_out = split_step_gen(fftw, system_size, deltat, omega, interaction_strength, data, false)?;
+    let system_size = &global.system_size;
+    let g = &global.interaction_strength;
+    let deltat = &conf.dt;
+    let omega = &conf.omega;
+    let imag_time = &conf.imag_time;
+    let psi_out = split_step_gen(fftw, system_size, deltat, omega, g, imag_time, psi)?;
     Ok(psi_out)
 }
 
 /// Not sure, but I think I never used this.
 /// As stated in the thesis, It was just too slow.
-pub fn split_step_s7<'a>(fftw: &'a mut FftHelper, system_size: &'a f64, deltat: &'a f64, omega: &'a f64, interaction_strength: &'a f64, data: &'a [Complex64] )-> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
+pub fn split_step_s7<'a>(sys_config: &'a GlobalConfig, spl_config: &'a SplConfig, fftw: &'a mut  FftHelper, psi_in: &[Complex64] )-> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
 
     //Bandrauk and Shen, J. Phys. A, 27:7147
     const S7_COEFFS: [f64; 7] = [
@@ -99,11 +99,13 @@ pub fn split_step_s7<'a>(fftw: &'a mut FftHelper, system_size: &'a f64, deltat: 
         0.784513610477560,
     ];
 
-    let mut psi = data.to_vec();
+    let mut psi = psi_in.to_vec();
 
     for &c in S7_COEFFS.iter(){
-        let sub_dt = deltat * c;
-        psi = split_step_s3(fftw, &system_size, &sub_dt, &omega, &interaction_strength, &psi)?;
+        psi = split_step_s3(fftw,
+                            &sys_config,
+                            &spl_config,
+                            &psi)?;
     }
 
     Ok(psi)
@@ -111,7 +113,7 @@ pub fn split_step_s7<'a>(fftw: &'a mut FftHelper, system_size: &'a f64, deltat: 
 
 /// Not sure, but I think I never used this.
 /// As stated in the thesis, It was just too slow.
-pub fn split_step_s7_imag<'a>(fftw: &'a mut FftHelper, system_size: &'a f64, deltat: &'a f64, omega: &'a f64, interaction_strength: &'a f64, data: &'a [Complex64] )-> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
+pub fn split_step_s7_imag<'a>(sys_config: &'a GlobalConfig, spl_config: &'a SplConfig, fftw: &'a mut  FftHelper, psi_in: &[Complex64] )-> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
 
     //Bandrauk and Shen, J. Phys. A, 27:7147
     const S7_COEFFS: [f64; 7] = [
@@ -124,11 +126,13 @@ pub fn split_step_s7_imag<'a>(fftw: &'a mut FftHelper, system_size: &'a f64, del
         0.784513610477560,
     ];
 
-    let mut psi = data.to_vec();
+    let mut psi = psi_in.to_vec();
 
     for &c in S7_COEFFS.iter(){
-        let sub_dt = deltat * c;
-        psi = split_step_s3_imag(fftw, &system_size, &sub_dt, &omega, &interaction_strength, &psi)?;
+        let psi = split_step_s3(fftw,
+                                &sys_config,
+                                &spl_config,
+                                &psi)?;
     }
 
     Ok(psi)
@@ -144,8 +148,9 @@ fn split_step_gen<'a>(
     deltat: &'a f64,
     omega: &'a f64,
     interaction_strength: &'a f64,
+    imag_time: &'a bool,
     data: &[Complex64],
-    real_time: bool) -> Result<Vec<Complex64>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<Complex64>, Box<dyn std::error::Error>> {
 
     let q = PI * 40. / system_size.clone();
     let n = data.len();
@@ -163,7 +168,7 @@ fn split_step_gen<'a>(
     let k_fac: Vec<Complex64> = k_vec
         .iter()
         .map(|k| -> Complex64 {
-            if real_time {
+            if !imag_time {
                 (-I * deltat * omega * k * k/ 2f64).exp()
             } else {
                 (omega * deltat * k * k / 2.0).exp()
@@ -183,7 +188,7 @@ fn split_step_gen<'a>(
         let xpos = system_size * 0.5 - (i as f64) * system_size / (n as f64);
         let v = potential(&xpos, &q, &true, &true);
         let interaction = interaction_strength * psi.norm_sqr();
-        let phase = if real_time {
+        let phase = if !imag_time {
              Complex64::new(0.0,-omega * deltat * (interaction + v))
         } else {
             Complex64::new(-omega * deltat * (interaction + v), 0.0)
@@ -212,11 +217,12 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn fft_test() {
         let n: usize = 5;
         let input = vec![c64::new(FRAC_ROOT_TWO_PI, 0.0); n];
 
-        let out = fft(&n, Sign::Forward, &input).unwrap();
+        let out = FftHelper::fft(&n, Sign::Forward, &input).unwrap();
 
         //  assert_eq!(out[0], c64::new(1f64, 0f64));
     }

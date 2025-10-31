@@ -3,12 +3,13 @@ pub mod math;
 pub mod physics;
 pub mod cli;
 
+use std::error::Error;
 use std::fs;
 use toml;
 
 use cli::{GlobalConfig};
-use crate::cli::{AlgorithmConfig, Cli, FullConfig};
-use crate::math::{LapackConfig, SplConfig};
+use crate::cli::{AlgorithmConfig, AlgorithmSubcommand, Cli, FullConfig};
+use crate::math::{LapackConfig, SplConfig, Uplo, Jobz};
 
 pub type SolverFn<Cfg> = fn(&Cfg, Vec<f64>, Vec<f64>) -> Result<(Vec<f64>, Vec<f64>), String>;
 
@@ -19,17 +20,14 @@ pub trait ConfigBuilder {
 }
 
 pub fn build_algorithm_config(cli: &Cli, globals: &GlobalConfig) -> AlgorithmConfig {
-    match cli.alg.as_str() {
-        "eig" => {
-            let eig = LapackConfig{ mode: cli.mode, symmetry: cli.symmetry}.build(globals);
+    match &cli.alg {
+        AlgorithmSubcommand::Eig(args) => {
+            let eig = LapackConfig{ mode: args.mode, symmetry: args.symmetry}.build(globals);
             AlgorithmConfig::Eig(eig)
         },
-        /*
-        "spl" => {
-            let spl = SplConfig::init(cli.dt, cli.omega, globals);
-            AlgorithmConfig::Spl(spl)
-        }*/
-        _ => panic!("Unknown algorithm: {}", cli.alg),
+        AlgorithmSubcommand::Spl(args) => AlgorithmConfig::Spl(
+                SplConfig{dt: args.dt, omega: args.omega, imag_time: args.imag_time}
+            )
     }
 }
 
@@ -47,47 +45,70 @@ pub fn save_config_to_file(config: &FullConfig, path: &str) -> Result<(), String
         .map_err(|e| format!("Error writing {}: {}", path, e))
 }
 
-pub fn merge_globals(cli: &GlobalConfig, file: Option<GlobalConfig>) -> GlobalConfig {
-    match file {
-        Some(file_cfg) => GlobalConfig {
-            output: cli.output.clone().or(file_cfg.output),
-            format: cli.format.clone().or(file_cfg.format),
-            step_num: if cli.step_num != 1024 { cli.step_num } else { file_cfg.step_num },
-            system_size: if cli.system_size != 10.0 { cli.system_size } else { file_cfg.system_size },
-            interaction_strength: if cli.interaction_strength != 0.0 {
-                cli.interaction_strength
+pub fn merge_configs(cli: &Cli, file: Option<FullConfig>) -> FullConfig {
+
+    let global = if let Some(f) = file.as_ref() {
+        GlobalConfig {
+            output: cli.global.output.clone().or(f.global.output.clone()),
+            format: cli.global.format.clone().or(f.global.format.clone()),
+            step_num: if cli.global.step_num != 1024 { cli.global.step_num} else { f.global.step_num },
+            system_size: if cli.global.system_size != 10.0 { cli.global.system_size } else { f.global.system_size },
+            interaction_strength: if cli.global.interaction_strength != 0.0 {
+                cli.global.interaction_strength
             } else {
-                file_cfg.interaction_strength
+                f.global.interaction_strength
             },
-            trap: if cli.trap { true } else { file_cfg.trap },
-            lattice: if cli.lattice { true } else { file_cfg.lattice },
-        },
-        None => cli.clone()
-    }
-}
-
-pub fn merge_algorithm(cli: &Cli, file: Option<AlgorithmConfig>, globals: &GlobalConfig) -> AlgorithmConfig {
-    match cli.alg.as_str() {
-        "eig" => {
-            // Take CLI values first
-            let mode = cli.mode;
-            let symmetry = cli.symmetry;
-            // Build final config
-            let final_config = LapackConfig { mode, symmetry }.build(globals);
-            AlgorithmConfig::Eig(final_config)
-        },
-        "spl" => {
-            let dt = cli.dt;
-            let omega = cli.omega;
-            AlgorithmConfig::Spl(SplConfig { dt, omega }.build(globals))
-        },
-        _ => {
-            // Fallback to file config if present
-            file.unwrap_or_else(|| panic!("Unknown algorithm: {}", cli.alg))
+            trap: if cli.global.trap { true } else { f.global.trap },
+            lattice: if cli.global.lattice { true } else { f.global.lattice },
         }
-    }
-}
+    } else { cli.global.clone() };
 
+    let byte_map: fn(AlgorithmConfig) -> (Jobz, Uplo) = |alg: AlgorithmConfig| {
+      match alg {
+          AlgorithmConfig::Eig(cfg) => {
+              (
+                  Jobz::map_jobz(cfg.jobz),
+                  Uplo::map_uplo(cfg.uplo)
+              )
+          },
+          _ => (Jobz::WithEigenvectors, Uplo::UpperTriangle)
+      }
+    };
+
+    let algorithm = {
+        match &cli.alg {
+            AlgorithmSubcommand::Eig(cli_args) => {
+                let (mode, symmetry) = if let Some(f) = file.as_ref().map(|f|{ f.algorithm.clone() }) {
+                    let ( f_mode, f_symmetry ) = byte_map(f);
+                    (
+                         if matches!(cli_args.mode, Jobz::WithEigenvectors) { cli_args.mode.clone() } else { f_mode},
+                         if matches!(cli_args.symmetry, Uplo::UpperTriangle) { cli_args.symmetry.clone() } else { f_symmetry }
+                    )
+                } else {
+                        (cli_args.mode.clone(), cli_args.symmetry.clone())
+                };
+
+                let eig = LapackConfig{ mode, symmetry }.build(&global);
+                AlgorithmConfig::Eig(eig)
+            },
+
+            AlgorithmSubcommand::Spl(cli_args) => {
+                let (dt, omega, imag_time) = if let Some(AlgorithmConfig::Spl(f)) = file.as_ref().map(|f| f.algorithm.clone()) {
+                    (
+                        if cli_args.dt != 0.1 { cli_args.dt } else { f.dt },
+                        if cli_args.omega != 1.0 { cli_args.omega } else { f.omega },
+                        if cli_args.imag_time { true } else { f.imag_time },
+                    )
+                } else {
+                    (cli_args.dt, cli_args.omega, cli_args.imag_time)
+                };
+                AlgorithmConfig::Spl(SplConfig{ dt, omega, imag_time })
+            }
+        }
+    };
+
+    FullConfig { global, algorithm }
+}
 
 pub mod serde_ascii {
     use serde::{self, Deserialize, Deserializer, Serializer};

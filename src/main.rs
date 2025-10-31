@@ -6,7 +6,7 @@ use spinoff::{Spinner, spinners, Color};
 use bec_rust::{build_algorithm_config, load_config_from_file, merge_algorithm, merge_globals, save_config_to_file};
 use clap::Parser;
 use bec_rust::cli::*;
-use bec_rust::math::build_solver;
+use bec_rust::math::{build_solver, SolverResult};
 use bec_rust::physics::TridiagHamiltonian;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -28,6 +28,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         algorithm: merge_algorithm(&cli, file_alg, &globals)
     };
 
+    let toml_str = toml::to_string_pretty(&run_config)?;
+    println!("{}", toml_str);
+
     let solver = build_solver(run_config.algorithm).unwrap();
 
     let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
@@ -35,9 +38,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     sp.update_text("Eigenvalue/Vector calculation");
     let hamiltonian = TridiagHamiltonian::new(&run_config.global);
 
-    let result = solver.run(hamiltonian.vectors.diag, hamiltonian.vectors.offdiag);
-
-
+    let result = solver.run(&globals,hamiltonian.vectors.diag, hamiltonian.vectors.offdiag, None)?;
+    match result {
+        SolverResult::SplitStep(psi) => {
+            // psi is your Vec<Complex<f64>>
+            println!("Wavefunction: {:?}", psi);
+        }
+        SolverResult::Eigen(eigenvals, eigenvecs) => {
+            // eigenvals is your Vec<f64>
+            println!("Eigenvalues: {:?}", eigenvals);
+        }
+    }
+    /*
     let eigenvectors = match result {
         Ok(result) => {
             sp.update_text("Groundstate found");
@@ -52,6 +64,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", eigenvectors.len());
 
     sp.success("Done 😃");
+
+ */
 
 /*
 
