@@ -5,8 +5,7 @@ interaction_strength = 0.0
 trap = false
 lattice = false
 
-[algorithm]
-alg = "spl"
-dt = 0.01
-omega = 1.0
-imag_time = false
+[spl]
+dt = 0.001
+omega = 2.0
+imag_time = true

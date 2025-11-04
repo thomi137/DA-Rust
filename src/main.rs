@@ -3,7 +3,7 @@ use plotters::coord::Shift;
 
 use spinoff::{Spinner, spinners, Color};
 
-use bec_rust::{build_algorithm_config, load_config_from_file, merge_algorithm, merge_globals, save_config_to_file};
+use bec_rust::{ load_config_from_file, merge_configs, save_config_to_file};
 use clap::Parser;
 use bec_rust::cli::*;
 use bec_rust::math::{build_solver, SolverResult};
@@ -13,16 +13,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cli = Cli::parse();
 
-    let mut file_globals: Option<GlobalConfig> = None;
-    let mut file_alg: Option<AlgorithmConfig> = None;
+    let f_conf = if let Some(ref path) = cli.config {
+        Some(load_config_from_file(path)?)
+    } else {
+        None
+    };
 
-    if let Some(ref path) = cli.config {
-        let file_config = load_config_from_file(&path)?;
-        file_globals = Some(file_config.global);
-        file_alg = Some(file_config.algorithm);
-    }
-    let globals = GlobalConfig { ..cli.global.clone() };
-
+    let config = merge_configs(&cli,f_conf);
+    let toml_str = toml::to_string_pretty(&config)?;
+    println!("{}", toml_str);
+/*
     let run_config = FullConfig{
         global: merge_globals(&globals, file_globals),
         algorithm: merge_algorithm(&cli, file_alg, &globals)
@@ -49,6 +49,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Eigenvalues: {:?}", eigenvals);
         }
     }
+
+ */
     /*
     let eigenvectors = match result {
         Ok(result) => {
