@@ -71,6 +71,7 @@ pub enum SplitStepAlgorithm{
     S7
 }
 
+#[derive(Debug)]
 pub enum SolverResult {
     Eigen(Vec<f64>, Vec<f64>),
     SplitStep(Vec<Complex64>),

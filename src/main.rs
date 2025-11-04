@@ -33,7 +33,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         sp.update_text("Eigenvalue/Vector calculation");
 
         let result = solver.run(&config.global,hamiltonian.vectors.diag, hamiltonian.vectors.offdiag, None)?;
-   /*       match result {
+        println!("{:#?}", result);
+
+    /*       match result {
             SolverResult::SplitStep(psi) => {
                 // psi is your Vec<Complex<f64>>
                 println!("Wavefunction: {:?}", psi);
