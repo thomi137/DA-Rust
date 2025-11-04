@@ -22,17 +22,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = merge_configs(&cli,f_conf);
     let toml_str = toml::to_string_pretty(&config)?;
     println!("{}", toml_str);
+
+
+    let solver = build_solver(config.algorithm).unwrap();
 /*
-    let run_config = FullConfig{
-        global: merge_globals(&globals, file_globals),
-        algorithm: merge_algorithm(&cli, file_alg, &globals)
-    };
-
-    let toml_str = toml::to_string_pretty(&run_config)?;
-    println!("{}", toml_str);
-
-    let solver = build_solver(run_config.algorithm).unwrap();
-
     let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
 
     sp.update_text("Eigenvalue/Vector calculation");
