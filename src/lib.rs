@@ -3,7 +3,6 @@ pub mod math;
 pub mod physics;
 pub mod cli;
 
-use std::error::Error;
 use std::fs;
 
 use serde::{Serialize, Deserialize};

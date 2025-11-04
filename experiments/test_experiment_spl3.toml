@@ -3,9 +3,9 @@ step_num = 1024
 system_size = 10.0
 interaction_strength = 0.0
 trap = true
-lattice = false
+lattice = true
 
 [spl]
 dt = 0.001
-omega = 1
-imag_time = false
+omega = 2
+imag_time = true

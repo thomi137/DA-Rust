@@ -5,7 +5,5 @@ trap = true
 lattice = true
 
 [eig]
-jobz = "V"
-uplo = "U"
-lda = 1024
-lwork = 3071
+mode = "vectors"
+symmetry = "upper"
