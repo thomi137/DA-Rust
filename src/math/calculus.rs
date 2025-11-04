@@ -222,7 +222,7 @@ mod tests {
         let n: usize = 5;
         let input = vec![c64::new(FRAC_ROOT_TWO_PI, 0.0); n];
 
-        let out = FftHelper::fft(&n, Sign::Forward, &input).unwrap();
+        let out = FftHelper::fft(n, Sign::Forward, &input).unwrap();
 
         //  assert_eq!(out[0], c64::new(1f64, 0f64));
     }
