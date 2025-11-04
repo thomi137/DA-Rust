@@ -25,25 +25,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
     let solver = build_solver(config.algorithm).unwrap();
-/*
-    let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
+    let hamiltonian = TridiagHamiltonian::new(&config.global);
 
-    sp.update_text("Eigenvalue/Vector calculation");
-    let hamiltonian = TridiagHamiltonian::new(&run_config.global);
+    /*
+        let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
 
-    let result = solver.run(&globals,hamiltonian.vectors.diag, hamiltonian.vectors.offdiag, None)?;
-    match result {
-        SolverResult::SplitStep(psi) => {
-            // psi is your Vec<Complex<f64>>
-            println!("Wavefunction: {:?}", psi);
+        sp.update_text("Eigenvalue/Vector calculation");
+
+        let result = solver.run(&globals,hamiltonian.vectors.diag, hamiltonian.vectors.offdiag, None)?;
+        match result {
+            SolverResult::SplitStep(psi) => {
+                // psi is your Vec<Complex<f64>>
+                println!("Wavefunction: {:?}", psi);
+            }
+            SolverResult::Eigen(eigenvals, eigenvecs) => {
+                // eigenvals is your Vec<f64>
+                println!("Eigenvalues: {:?}", eigenvals);
+            }
         }
-        SolverResult::Eigen(eigenvals, eigenvecs) => {
-            // eigenvals is your Vec<f64>
-            println!("Eigenvalues: {:?}", eigenvals);
-        }
-    }
 
- */
+     */
     /*
     let eigenvectors = match result {
         Ok(result) => {
