@@ -27,13 +27,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let solver = build_solver(config.algorithm).unwrap();
     let hamiltonian = TridiagHamiltonian::new(&config.global);
 
-    /*
+
         let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
 
         sp.update_text("Eigenvalue/Vector calculation");
 
-        let result = solver.run(&globals,hamiltonian.vectors.diag, hamiltonian.vectors.offdiag, None)?;
-        match result {
+        let result = solver.run(&config.global,hamiltonian.vectors.diag, hamiltonian.vectors.offdiag, None)?;
+   /*       match result {
             SolverResult::SplitStep(psi) => {
                 // psi is your Vec<Complex<f64>>
                 println!("Wavefunction: {:?}", psi);
