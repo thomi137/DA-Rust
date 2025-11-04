@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 
 use crate::physics::{PI, potential};
-use crate::{GlobalConfig, ConfigBuilder, FullConfig};
+use crate::{GlobalConfig, ConfigBuilder};
 
 const TWO_PI: f64 = 2.0 * PI;
 const I: Complex64 = Complex::I;
@@ -101,7 +101,7 @@ pub fn split_step_s7<'a>(sys_config: &'a GlobalConfig, spl_config: &'a SplConfig
 
     let mut psi = psi_in.to_vec();
 
-    for &c in S7_COEFFS.iter(){
+    for &_c in S7_COEFFS.iter(){
         psi = split_step_s3(fftw,
                             &sys_config,
                             &spl_config,

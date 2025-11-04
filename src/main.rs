@@ -35,19 +35,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let result = solver.run(&config.global,hamiltonian.vectors.diag, hamiltonian.vectors.offdiag, None)?;
 
 
-
-    /*       match result {
+       let vecs = match result {
             SolverResult::SplitStep(psi) => {
-                // psi is your Vec<Complex<f64>>
-                println!("Wavefunction: {:?}", psi);
+                (vec![], psi.iter().map(|e| e.norm_sqr()).collect())
             }
             SolverResult::Eigen(eigenvals, eigenvecs) => {
-                // eigenvals is your Vec<f64>
-                println!("Eigenvalues: {:?}", eigenvals);
+                (eigenvals, eigenvecs)
             }
-        }
+        };
+    let msg = format!("Done 😃, lowest eigenvalue: {}", vecs.0[0]);
+    sp.success(&msg);
 
-     */
+
     /*
     let eigenvectors = match result {
         Ok(result) => {

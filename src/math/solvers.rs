@@ -3,7 +3,7 @@ use lapack::*;
 use num::complex::Complex64;
 
 use crate::{AlgorithmConfig, GlobalConfig};
-use crate::math::calculus::{FftHelper, split_step_s3, split_step_s7};
+use crate::math::calculus::{FftHelper, split_step_s3};
 use super::*;
 
 use linalg::*;
