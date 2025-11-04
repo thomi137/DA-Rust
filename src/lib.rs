@@ -49,21 +49,6 @@ pub trait ConfigBuilder {
     fn build(&self, globals: &GlobalConfig) -> Self::Output;
 }
 
-/*
-pub fn build_algorithm_config(cli: &Cli, globals: &GlobalConfig) -> AlgorithmConfig {
-    match &cli.alg {
-        AlgorithmSubcommand::Eig(args) => {
-            let eig = LapackConfig{ mode: args.mode, symmetry: args.symmetry}.build(globals);
-            AlgorithmConfig::Eig(eig)
-        },
-        AlgorithmSubcommand::Spl(args) => AlgorithmConfig::Spl(
-                SplConfig{dt: args.dt.clone(), omega: args.omega.clone(), imag_time: args.imag_time.clone()}
-            )
-    }
-}
-
- */
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileConfig {
     pub global: Option<GlobalConfig>,
@@ -143,7 +128,6 @@ fn get_algorithm_config(cli: &Cli, f_conf: Option<FileConfig>, global: &GlobalCo
         AlgorithmSubcommand::Spl(cli_args) => {
             let s_conf = f_conf.and_then(|file| file.spl);
             let (dt, omega, imag_time) = s_conf.map(|s| {
-
                 (
                     if cli_args.dt != DEFAULT_DELTAT { cli_args.dt.clone() } else { s.dt },
                     if cli_args.omega != DEFAULT_OMEGA { cli_args.omega.clone() } else { s.omega },

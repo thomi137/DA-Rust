@@ -94,7 +94,7 @@ pub struct SplConfigArgs {
     #[arg(long, default_value_t = 0.1)]
     pub dt: f64,
 
-    #[arg(long, default_value_t = 1.0)]
+    #[arg(short, long, default_value_t = 1.0)]
     pub omega: f64,
 
     #[arg(short, long)]
@@ -113,4 +113,3 @@ pub struct FullConfig {
     pub global: GlobalConfig,
     pub algorithm: AlgorithmConfig,
 }
-

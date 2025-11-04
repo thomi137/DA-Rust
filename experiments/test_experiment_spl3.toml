@@ -2,10 +2,10 @@
 step_num = 1024
 system_size = 10.0
 interaction_strength = 0.0
-trap = false
+trap = true
 lattice = false
 
 [spl]
 dt = 0.001
-omega = 2.0
-imag_time = true
+omega = 1
+imag_time = false
