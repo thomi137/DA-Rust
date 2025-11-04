@@ -33,7 +33,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         sp.update_text("Eigenvalue/Vector calculation");
 
         let result = solver.run(&config.global,hamiltonian.vectors.diag, hamiltonian.vectors.offdiag, None)?;
-        println!("{:#?}", result);
+
+
 
     /*       match result {
             SolverResult::SplitStep(psi) => {
