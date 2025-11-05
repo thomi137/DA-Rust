@@ -5,6 +5,7 @@ use spinoff::{Spinner, spinners, Color};
 
 use bec_rust::{ load_config_from_file, merge_configs, save_config_to_file};
 use clap::Parser;
+use num::complex::Complex64;
 use bec_rust::cli::*;
 use bec_rust::math::{build_solver, SolverResult};
 use bec_rust::physics::TridiagHamiltonian;
@@ -28,57 +29,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hamiltonian = TridiagHamiltonian::new(&config.global);
 
 
-        let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
+    let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);
 
-        sp.update_text("Eigenvalue/Vector calculation");
+    sp.update_text("Eigenvalue/Vector calculation");
 
-        let result = solver.run(&config.global,hamiltonian.vectors.diag, hamiltonian.vectors.offdiag, None)?;
-
-
-       let vecs = match result {
-            SolverResult::SplitStep(psi) => {
-                (vec![], psi.iter().map(|e| e.norm_sqr()).collect())
-            }
-            SolverResult::Eigen(eigenvals, eigenvecs) => {
-                (eigenvals, eigenvecs)
-            }
-        };
-    let msg = format!("Done 😃, lowest eigenvalue: {}", vecs.0[0]);
-    sp.success(&msg);
+    let initial_psi = vec![Complex64::new(1.0, 0.0); config.global.step_num];
+    let result = solver.run(&config.global, None, None, Option::from(initial_psi))?;
 
 
-    /*
-    let eigenvectors = match result {
-        Ok(result) => {
-            sp.update_text("Groundstate found");
-            result.1
-        },
-        Err(msg) => {
-            sp.fail(&format!("Something went wrong: {}", msg));
-            panic!("{:#?}", msg)
+    let vecs = match result {
+        SolverResult::SplitStep(psi) => {
+            (vec![], psi.iter().map(|e| e.norm_sqr()).collect())
+        }
+        SolverResult::Eigen(eigenvals, eigenvecs) => {
+            (eigenvals, eigenvecs)
         }
     };
+    println!("{:?}", vecs);
 
-    println!("{}", eigenvectors.len());
 
-    sp.success("Done 😃");
 
- */
-
-/*
-
-if let Some(output) = globals.output {
+if let Some(output) = config.global.output {
 
     let filename: String = output;
 
     // Just to make very sure.
-    let format: String = globals.format.unwrap_or("png".to_string());
+    let format: String = config.global.format.unwrap_or("png".to_string());
 
-    let plotvec: Vec<(f64, f64)> = eigenvectors[0..globals.step_num]
+    let plotvec: Vec<(f64, f64)> = vecs.1[0.. config.global.step_num]
         .iter()
         .enumerate()
         .map(|(idx, val)| {
-            let xpos =  (globals.system_size * 0.5) - ((idx as f64) * globals.system_size)/(globals.step_num as f64);
+            let xpos =  (config.global.system_size * 0.5) - ((idx as f64) * config.global.system_size)/(config.global.step_num as f64);
             (xpos, val.abs())
         })
         .collect();
@@ -121,7 +103,6 @@ match format {
         std::process::exit(1);
     }
 }
-*/
     Ok(())
 }
 

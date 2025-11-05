@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 
 use crate::physics::{PI, potential};
-use crate::{GlobalConfig, ConfigBuilder};
+use crate::{GlobalConfig};
 
 const TWO_PI: f64 = 2.0 * PI;
 const I: Complex64 = Complex::I;
@@ -186,7 +186,7 @@ fn split_step_gen<'a>(
 
     for (i, psi) in psi_x.iter_mut().enumerate() {
         let xpos = system_size * 0.5 - (i as f64) * system_size / (n as f64);
-        let v = potential(&xpos, &q, &true, &true);
+        let v = potential(&xpos, &q, true, true);
         let interaction = interaction_strength * psi.norm_sqr();
         let phase = if !imag_time {
              Complex64::new(0.0,-omega * deltat * (interaction + v))

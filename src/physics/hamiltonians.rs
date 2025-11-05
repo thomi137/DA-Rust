@@ -24,7 +24,7 @@ impl Hamiltonian {
                 let xpos = position(&col, &system_width, &fnum_steps);
                 let val = 1./(&step_size * &step_size)
                     + interaction_strength * pow(FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.), 2)
-                    + potential(&xpos, &wave_number, &lattice, &trap);
+                    + potential(&xpos, &wave_number, lattice, trap);
                 return val
             } else if (col as isize - row as isize).abs() == 1  {
                 return -0.5 * 1./(pow(step_size, 2))
@@ -71,7 +71,7 @@ impl TridiagHamiltonian {
                 let xpos = position(&idx, &system_width, &fnum_steps);
                 1./(&step_size * &step_size)
                     + interaction_strength.clone() * pow(FRAC_ROOT_TWO_PI * f64::exp(- pow(xpos, 2) / 2.), 2)
-                    + potential(&xpos, &wave_number, &trap, &lattice)
+                    + potential(&xpos, &wave_number, trap, lattice)
 
             })
             .collect();
@@ -108,7 +108,7 @@ pub fn position(index: &usize, system_width: &f64, fnum_steps: &f64) -> f64 {
     (system_width * 0.5) - (idx as f64) * (system_width / fnum_steps)
 }
 
-pub fn potential(location: &f64, wave_number: &f64, trap: &bool, lattice: &bool) -> f64 {
+pub fn potential(location: &f64, wave_number: &f64, trap: bool, lattice: bool) -> f64 {
     let sinx = f64::sin(wave_number * location);
 
     match (trap, lattice) {
