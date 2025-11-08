@@ -3,7 +3,7 @@ use plotters::coord::Shift;
 
 use spinoff::{Spinner, spinners, Color};
 
-use bec_rust::{ load_config_from_file, merge_configs, save_config_to_file};
+use bec_rust::{ load_config_from_file, merge_configs};
 use clap::Parser;
 use num::complex::Complex64;
 use bec_rust::cli::*;
@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
     let solver = build_solver(config.algorithm).unwrap();
-    let hamiltonian = TridiagHamiltonian::new(&config.global);
+    let _hamiltonian = TridiagHamiltonian::new(&config.global);
 
 
     let mut sp = Spinner::new(spinners::Aesthetic, "Starting calculation.", Color::Cyan);

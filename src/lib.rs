@@ -75,7 +75,7 @@ pub fn merge_configs(cli: &Cli, f_conf: Option<FileConfig>) -> FullConfig {
 
     let global = match f_conf.as_ref() {
         Some(file) => {
-            let globals = file.clone().global.clone().unwrap_or(cli.global.clone());
+            let globals = file.global.clone().unwrap_or(cli.global.clone());
             get_global_config(&cli, globals)
         }
         None => cli.global.clone()

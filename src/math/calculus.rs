@@ -86,7 +86,10 @@ pub fn split_step_s3_imag(fftw: &mut FftHelper,
 
 /// Not sure, but I think I never used this.
 /// As stated in the thesis, It was just too slow.
-pub fn split_step_s7<'a>(sys_config: &'a GlobalConfig, spl_config: &'a SplConfig, fftw: &'a mut  FftHelper, psi_in: &[Complex64] )-> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
+pub fn split_step_s7(fftw: &mut FftHelper,
+                         global: &GlobalConfig,
+                         conf: &SplConfig,
+                         psi: &[Complex64] )-> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
 
     //Bandrauk and Shen, J. Phys. A, 27:7147
     const S7_COEFFS: [f64; 7] = [
@@ -99,12 +102,12 @@ pub fn split_step_s7<'a>(sys_config: &'a GlobalConfig, spl_config: &'a SplConfig
         0.784513610477560,
     ];
 
-    let mut psi = psi_in.to_vec();
+    let mut psi = psi.to_vec();
 
     for &_c in S7_COEFFS.iter(){
         psi = split_step_s3(fftw,
-                            &sys_config,
-                            &spl_config,
+                            &global,
+                            &conf,
                             &psi)?;
     }
 
@@ -113,7 +116,10 @@ pub fn split_step_s7<'a>(sys_config: &'a GlobalConfig, spl_config: &'a SplConfig
 
 /// Not sure, but I think I never used this.
 /// As stated in the thesis, It was just too slow.
-pub fn split_step_s7_imag<'a>(sys_config: &'a GlobalConfig, spl_config: &'a SplConfig, fftw: &'a mut  FftHelper, psi_in: &[Complex64] )-> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
+pub fn split_step_s7_imag( fftw: &mut FftHelper,
+                           global: &GlobalConfig,
+                           conf: &SplConfig,
+                           psi: &[Complex64])-> Result<Vec<Complex64>, Box<dyn std::error::Error>>{
 
     //Bandrauk and Shen, J. Phys. A, 27:7147
     const S7_COEFFS: [f64; 7] = [
@@ -126,13 +132,13 @@ pub fn split_step_s7_imag<'a>(sys_config: &'a GlobalConfig, spl_config: &'a SplC
         0.784513610477560,
     ];
 
-    let mut psi = psi_in.to_vec();
+    let mut psi = psi.to_vec();
 
     for &c in S7_COEFFS.iter(){
-        let psi = split_step_s3(fftw,
-                                &sys_config,
-                                &spl_config,
-                                &psi)?;
+        psi = split_step_s3_imag(fftw,
+                                   &global,
+                                   &conf,
+                                   &psi)?;
     }
 
     Ok(psi)
@@ -150,18 +156,20 @@ fn split_step_gen<'a>(
     interaction_strength: &'a f64,
     imag_time: &'a bool,
     data: &[Complex64],
-    ) -> Result<Vec<Complex64>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Complex64>, Box<dyn std::error::Error>> {
 
     let q = PI * 40. / system_size.clone();
     let n = data.len();
 
     let k_vec: Vec<Complex64> = (0..n)
         .map(|idx| -> Complex64 {
-            if (idx as f64) < (n as f64)/2.0 {
-                Complex64::from((TWO_PI / system_size) * (idx as f64))
+            let dk = TWO_PI / system_size;
+            let k = if idx < n / 2 {
+                dk * (idx as f64)
             } else {
-                Complex64::from(-1.0 *(TWO_PI / system_size) * ((n as f64) - (idx as f64)))
-            }
+                dk * ((idx as f64) - (n as f64))
+            };
+            Complex64::new(k, 0.0)
         })
         .collect();
 
@@ -169,9 +177,9 @@ fn split_step_gen<'a>(
         .iter()
         .map(|k| -> Complex64 {
             if !imag_time {
-                (-I * deltat * omega * k * k/ 2f64).exp()
+                (-I * deltat * k.powi(2)/ 2f64).exp()
             } else {
-                (omega * deltat * k * k / 2.0).exp()
+                (-omega * deltat * k.powi(2) / 2f64).exp()
             }
         })
         .collect();
@@ -185,13 +193,12 @@ fn split_step_gen<'a>(
     let mut psi_x = fftw.fft(Sign::Backward, &ft)?;
 
     for (i, psi) in psi_x.iter_mut().enumerate() {
-        let xpos = system_size * 0.5 - (i as f64) * system_size / (n as f64);
-        let v = potential(&xpos, &q, true, true);
+        let xpos = -0.5 * system_size + (i as f64) * system_size / (n as f64);        let v = potential(&xpos, &q, true, true);
         let interaction = interaction_strength * psi.norm_sqr();
         let phase = if !imag_time {
-             Complex64::new(0.0,-omega * deltat * (interaction + v))
+            Complex64::new(0.0,-omega * deltat * (interaction + v))
         } else {
-            Complex64::new(-omega * deltat * (interaction + v), 0.0)
+            Complex64::new(-deltat * (interaction + v), 0.0)
         };
 
         *psi *= phase.exp();

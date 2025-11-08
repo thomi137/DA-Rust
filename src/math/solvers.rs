@@ -103,17 +103,28 @@ impl Solver {
                 let diag = diag.unwrap();
                 let offdiag = offdiag.unwrap();
                 let slv = f(cfg, diag, offdiag)?;
-                return Ok(SolverResult::Eigen(slv.0, slv.1))
+                Ok(SolverResult::Eigen(slv.0, slv.1))
             },
 
             Solver::SplitStep(f, cfg) => {
                 let mut fftw = FftHelper::new(globals.step_num)
                     .map_err(|e| format!("FFTW init failed: {}", e))?;
-                let psi = psi.ok_or("Initial psi missing")?;
-                let psi_out = f(&mut fftw, globals, cfg, &psi)
-                    .map_err(|e| format!("Split-step solver failed: {}", e))?;
+                let mut psi = psi.ok_or("Initial psi missing")?;
+                for _ in 0..10000{
+                    let psi_prev = psi.clone();
+                    psi = f(&mut fftw, globals, cfg, &psi)
+                       .map_err(|e| format!("Split-step solver failed: {}", e))?;
+                    let norm: f64 = psi.iter().map(|z| z.norm_sqr()).sum::<f64>().sqrt();
+                    psi = psi.iter().map(|z| z / norm).collect();
+                    let diff = psi.iter()
+                        .zip(psi_prev.iter())
+                        .map(|(a,b)| (a - b).norm_sqr())
+                        .sum::<f64>()
+                        .sqrt();
+                    if diff < 1e-16 { println!("good enough"); break; }
+                }
 
-                Ok(SolverResult::SplitStep(psi_out))
+                Ok(SolverResult::SplitStep(psi))
             }
         }
     }
@@ -126,8 +137,12 @@ pub fn build_solver(
     match alg_config {
         AlgorithmConfig::Eig(config) => Ok(Solver::Eigen(tridiag_eigensolver, config)),
         AlgorithmConfig::Spl(config) =>{
-            Ok(Solver::SplitStep(split_step_s3, config))
-        } ,
+            if config.imag_time {
+                Ok(Solver::SplitStep(split_step_s3_imag, config))
+            } else {
+                Ok(Solver::SplitStep(split_step_s3, config))
+            }
+        },
     }
 }
 
