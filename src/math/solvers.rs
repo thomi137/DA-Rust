@@ -150,11 +150,11 @@ pub fn build_solver(
 
 #[cfg(test)]
 mod tests {
-    use crate::math::{EigensolverConfig, solvers};
+    use crate::math::{EigenConfig, solvers};
 
     #[test]
     fn eigensolver_test() {
-        let config = EigensolverConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigenConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let hamiltonian = vec![3.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 3.0];
 
         let res = solvers::symmetric_eigensolver(&config, &hamiltonian).unwrap();
@@ -170,7 +170,7 @@ mod tests {
 
     #[test]
     fn eigenvector_eigensolver_test() {
-        let config = EigensolverConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigenConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let hamiltonian = vec![3.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 3.0];
 
         let res = solvers::symmetric_eigensolver(&config, &hamiltonian).unwrap();
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn only_eigenvalues_eigensolver_test() {
-        let config = EigensolverConfig { jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigenConfig { jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let hamiltonian = vec![3.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 3.0];
 
         let res = solvers::symmetric_eigensolver(&config, &hamiltonian).unwrap();
@@ -198,7 +198,7 @@ mod tests {
     #[test]
     fn tridiag_eigensolver_test() {
         let epsilon = 1e-2f64;
-        let config = EigensolverConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigenConfig { jobz: b'V', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let diag: Vec<f64> = (1..=5).map(|x| { x as f64 }).collect();
         let offdiag: Vec<f64> = vec![2.0; 4];
         let res = solvers::tridiag_eigensolver(&config, diag, offdiag).unwrap();
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn tridiag_eigensolver_test_only_eigenvalues() {
-        let config = EigensolverConfig { jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
+        let config = EigenConfig { jobz: b'N', uplo: b'U', n: 3, lda: 3, lwork: 8, system_width: 10. };
         let diag: Vec<f64> = (1..=5).map(|x| { x as f64 }).collect();
         let offdiag: Vec<f64> = vec![2.0; 4];
         let res = solvers::tridiag_eigensolver(&config, diag, offdiag).unwrap();

@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let vecs = match result {
         SolverResult::SplitStep(psi) => {
-            (vec![], psi.iter().map(|e| e.norm_sqr()).collect())
+            (vec![], psi.iter().map(|e| e.norm()).collect())
         }
         SolverResult::Eigen(eigenvals, eigenvecs) => {
             (eigenvals, eigenvecs)

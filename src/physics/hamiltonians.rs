@@ -142,8 +142,8 @@ pub fn potential(location: &f64, wave_number: &f64, trap: bool, lattice: bool) -
      // Trap only, Harmonic Oscillator
      #[test]
      fn test_potential() {
-         let osc_pot = potential(&0., &1., &true, &false);
-         let osc_pot2 = potential(&-5.0, &1., &true, &false);
+         let osc_pot = potential(&0., &1., true, false);
+         let osc_pot2 = potential(&-5.0, &1., true, false);
 
          assert_eq!(osc_pot, 0.);
          assert_eq!(osc_pot2, 12.5);
@@ -152,7 +152,7 @@ pub fn potential(location: &f64, wave_number: &f64, trap: bool, lattice: bool) -
      // Lattice only. Sin^2 -like potential
      #[test]
      fn test_lat_potential() {
-         let lat_pot = potential(&0., &1., &false, &true);
+         let lat_pot = potential(&0., &1., false, true);
 
          assert_eq!(lat_pot, 0.);
      }

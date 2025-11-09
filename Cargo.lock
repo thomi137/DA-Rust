@@ -113,6 +113,7 @@ dependencies = [
  "fftw",
  "lapack",
  "num 0.4.3",
+ "num-complex",
  "plotters",
  "serde",
  "spinoff",

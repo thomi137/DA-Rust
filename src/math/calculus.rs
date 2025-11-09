@@ -65,8 +65,10 @@ pub fn split_step_s3(
     let g = &global.interaction_strength;
     let deltat = &conf.dt;
     let omega = &conf.omega;
-    let imag_time = &conf.imag_time;
-    let psi_out = split_step_gen(fftw, &system_size, &deltat, &omega, g, imag_time, psi)?;
+    let trap = global.trap.clone();
+    let lattice = global.lattice.clone();
+    let imag_time = conf.imag_time;
+    let psi_out = split_step_gen(fftw, &system_size, &deltat, &omega, g, trap, lattice, imag_time, psi)?;
     Ok(psi_out)
 }
 
@@ -79,8 +81,10 @@ pub fn split_step_s3_imag(fftw: &mut FftHelper,
     let g = &global.interaction_strength;
     let deltat = &conf.dt;
     let omega = &conf.omega;
-    let imag_time = &conf.imag_time;
-    let psi_out = split_step_gen(fftw, system_size, deltat, omega, g, imag_time, psi)?;
+    let trap = global.trap.clone();
+    let lattice = global.lattice.clone();
+    let imag_time = conf.imag_time;
+    let psi_out = split_step_gen(fftw, system_size, deltat, omega, g, trap, lattice, imag_time, psi)?;
     Ok(psi_out)
 }
 
@@ -148,13 +152,15 @@ pub fn split_step_s7_imag( fftw: &mut FftHelper,
 
 /// See thesis and references therein for an explanation of the split-step method.
 /// Maybe should create a Hamiltonian for ffts as well
-fn split_step_gen<'a>(
-    fftw: &'a mut FftHelper,
-    system_size: &'a f64,
-    deltat: &'a f64,
-    omega: &'a f64,
-    interaction_strength: &'a f64,
-    imag_time: &'a bool,
+fn split_step_gen(
+    fftw: & mut FftHelper,
+    system_size: &f64,
+    deltat: &f64,
+    omega: &f64,
+    interaction_strength: &f64,
+    trap: bool,
+    lattice: bool,
+    imag_time: bool,
     data: &[Complex64],
 ) -> Result<Vec<Complex64>, Box<dyn std::error::Error>> {
 
@@ -177,7 +183,7 @@ fn split_step_gen<'a>(
         .iter()
         .map(|k| -> Complex64 {
             if !imag_time {
-                (-I * deltat * k.powi(2)/ 2f64).exp()
+                (-I * omega * deltat * k.powi(2)/ 2f64).exp()
             } else {
                 (-omega * deltat * k.powi(2) / 2f64).exp()
             }
@@ -187,18 +193,22 @@ fn split_step_gen<'a>(
     let mut ft = fftw.fft(Sign::Forward, data)?;
 
     for i in 0..n {
-        ft[i] *= k_fac[i] / (n as f64);
+        ft[i] *= k_fac[i];
     }
 
     let mut psi_x = fftw.fft(Sign::Backward, &ft)?;
+    for v in psi_x.iter_mut(){
+        *v /= n as f64;
+    }
 
     for (i, psi) in psi_x.iter_mut().enumerate() {
-        let xpos = -0.5 * system_size + (i as f64) * system_size / (n as f64);        let v = potential(&xpos, &q, true, true);
+        let xpos = -0.5 * system_size + (i as f64) * system_size / (n as f64);
+        let v = potential(&xpos, &q, trap, lattice);
         let interaction = interaction_strength * psi.norm_sqr();
         let phase = if !imag_time {
             Complex64::new(0.0,-omega * deltat * (interaction + v))
         } else {
-            Complex64::new(-deltat * (interaction + v), 0.0)
+            Complex64::new(-deltat * omega * (interaction + v), 0.0)
         };
 
         *psi *= phase.exp();
@@ -206,16 +216,56 @@ fn split_step_gen<'a>(
 
     let mut ft2 = fftw.fft(Sign::Forward, &psi_x)?;
     for i in 0..n {
-        ft2[i] *= k_fac[i] / (n as f64);
+        ft2[i] *= k_fac[i];
     }
-    let psi_out = fftw.fft(Sign::Backward, &ft2)?;
+    let mut psi_out = fftw.fft(Sign::Backward, &ft2)?;
+    for v in psi_out.iter_mut() {
+        *v /= n as f64;
+    }
 
-
-    let norm: f64 = psi_out.iter().map(|z| z.norm_sqr()).sum::<f64>().sqrt();
+    let dx = system_size / (n as f64);
+    let norm: f64 = (psi_out.iter().map(|z| z.norm_sqr()).sum::<f64>() * dx).sqrt();
     let psi_out: Vec<c64> = psi_out.iter().map(|z| z / norm).collect();
 
     Ok(psi_out)
 }
+
+
+/// Integrate |psi|^2 over the spatial grid using composite Simpson's rule.
+/// `system_size` = total domain length.
+/// Assumes uniform spacing.
+pub fn simpson_norm(psi: &[Complex64], system_size: f64) -> f64 {
+    let n = psi.len();
+    if n < 2 {
+        return psi.get(0).map_or(0.0, |z| z.norm_sqr() * system_size);
+    }
+
+    let dx = system_size / (n as f64);
+
+    // ensure even number of intervals for classic Simpson’s rule
+    let m = if (n - 1) % 2 == 1 { n - 1 } else { n };
+
+    let mut sum = psi[0].norm_sqr() + psi[m - 1].norm_sqr();
+
+    // 4 * odd indices
+    for i in (1..m - 1).step_by(2) {
+        sum += 4.0 * psi[i].norm_sqr();
+    }
+    // 2 * even indices
+    for i in (2..m - 1).step_by(2) {
+        sum += 2.0 * psi[i].norm_sqr();
+    }
+
+    let mut integral = dx / 3.0 * sum;
+
+    // if n-1 is odd (odd number of intervals), add trapezoid for last pair
+    if m != n {
+        integral += 0.5 * dx * (psi[m - 1].norm_sqr() + psi[m].norm_sqr());
+    }
+
+    integral
+}
+
 
 #[cfg(test)]
 mod tests {
